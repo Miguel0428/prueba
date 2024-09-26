@@ -4,7 +4,7 @@ const Actores = () => {
     return (
         <View style={styles.container}>
         <Text style={styles.text}>Actores</Text>
-    </View>
+        </View>
     );
 };
 

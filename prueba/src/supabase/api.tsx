@@ -11,4 +11,17 @@ export const fetchPosts = async () => {
     }
   };
 
+export const getAllPlataformas = async () => {
+    try {
+        const { data, error } = await supabase
+            .from('Plataforma')
+            .select('*');
+
+        return data;
+    } catch (error) {
+        console.error('Error fetching plataformas:', error.message);
+        return [];
+    }
+};
+
   export type posts = Awaited<ReturnType<typeof fetchPosts>>;
