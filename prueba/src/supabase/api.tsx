@@ -24,4 +24,20 @@ export const getAllPlataformas = async () => {
     }
 };
 
+export const deletePlatform = async (id) => {
+    try {
+        const { data, error } = await supabase
+            .from('Plataforma')
+            .delete()
+            .eq('id', id);
+
+        if (error) throw error;
+
+        console.log('Plataforma eliminada:', data);
+
+    } catch (error) {
+        console.error('Error al eliminar la plataforma:', error.message);
+    }
+};
+
   export type posts = Awaited<ReturnType<typeof fetchPosts>>;
