@@ -6,6 +6,8 @@ import DetailsScreen from './src/screens/DetailsScreen';
 import {createNativeStackNavigator} from "@react-navigation/native-stack";
 import Login from "./src/screens/Login";
 import RegisterScreen from "./src/screens/RegisterScreen";
+import AgregarSerie from "./src/screens/AgregarSerie";
+import Plataforma from "./src/screens/Plataforma";
 
 const Drawer = createDrawerNavigator();
 
@@ -17,6 +19,8 @@ export default function App() {
                 <Drawer.Screen name="Details" component={DetailsScreen} />
                 <Drawer.Screen name="Login" component={Login}/>
                 <Drawer.Screen name="Registro" component={RegisterScreen}/>
+                <Drawer.Screen name="Series" component={AgregarSerie}/>
+                <Drawer.Screen name="Plataformas" component={Plataforma}/>
             </Drawer.Navigator>
         </NavigationContainer>
     );

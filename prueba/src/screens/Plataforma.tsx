@@ -1,7 +1,17 @@
-import {Pressable, ScrollView, StyleSheet, Text, TextInput, View} from "react-native";
-import React, {useCallback, useEffect, useState} from "react";
-import {deletePlatform, editPlatform, getAllPlataformas, submitPlatform} from "../supabase/plataforma/Api-plataforma";
-import {CardComponent} from '../Components/CardComponent'
+import React, { useCallback, useEffect, useState } from "react";
+import {
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    View,
+    TouchableOpacity,
+    ActivityIndicator,
+    Alert,
+} from "react-native";
+import { deletePlatform, editPlatform, getAllPlataformas, submitPlatform } from "../supabase/plataforma/Api-plataforma";
+import { CardComponent } from '../Components/CardComponent';
+import Icon from 'react-native-vector-icons/Ionicons';
 
 interface PlataformaItem {
     id: number;
@@ -10,21 +20,25 @@ interface PlataformaItem {
 
 const Plataforma = () => {
     const [newPlatform, setNewPlatform] = useState<string>("");
-    const [plataforma, setNewPlataforma] = useState<PlataformaItem[]>([]);
+    const [plataformas, setPlataformas] = useState<PlataformaItem[]>([]);
+    const [isLoading, setIsLoading] = useState<boolean>(true);
 
-    const fetchPlataformas = async () => {
+    const fetchPlataformas = useCallback(async () => {
         try {
+            setIsLoading(true);
             const plataformasData = await getAllPlataformas();
-            setNewPlataforma(plataformasData);
+            setPlataformas(plataformasData);
         } catch (error) {
             console.error("Error al obtener plataformas:", error);
+            Alert.alert("Error", "No se pudieron cargar las plataformas. Por favor, intenta de nuevo.");
+        } finally {
+            setIsLoading(false);
         }
-    };
+    }, []);
 
     useEffect(() => {
         fetchPlataformas();
-    }, []);
-
+    }, [fetchPlataformas]);
 
     const handleEditNewPlatform = useCallback(async (id: number, newName: string) => {
         try {
@@ -32,8 +46,9 @@ const Plataforma = () => {
             await fetchPlataformas();
         } catch (error) {
             console.error("Error al editar la plataforma:", error);
+            Alert.alert("Error", "No se pudo editar la plataforma. Por favor, intenta de nuevo.");
         }
-    }, []);
+    }, [fetchPlataformas]);
 
     const handleDeletePlatform = useCallback(async (id: number) => {
         try {
@@ -41,12 +56,13 @@ const Plataforma = () => {
             await fetchPlataformas();
         } catch (error) {
             console.error("Error al eliminar la plataforma:", error);
+            Alert.alert("Error", "No se pudo eliminar la plataforma. Por favor, intenta de nuevo.");
         }
-    }, []);
+    }, [fetchPlataformas]);
 
     const handleSubmit = useCallback(async () => {
         if (newPlatform.trim() === "") {
-            console.log("El nombre de la plataforma no puede estar vacío");
+            Alert.alert("Error", "El nombre de la plataforma no puede estar vacío");
             return;
         }
 
@@ -56,11 +72,12 @@ const Plataforma = () => {
             setNewPlatform("");
         } catch (error) {
             console.error("Error al enviar la plataforma:", error);
+            Alert.alert("Error", "No se pudo añadir la plataforma. Por favor, intenta de nuevo.");
         }
-    }, [newPlatform]);
+    }, [newPlatform, fetchPlataformas]);
 
     return (
-        <ScrollView style={styles.container}>
+        <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
             <View style={styles.header}>
                 <Text style={styles.title}>¡Descubre tu próxima serie!</Text>
                 <Text style={styles.description}>
@@ -68,32 +85,36 @@ const Plataforma = () => {
                 </Text>
             </View>
 
-            <View>
-                <Text style={styles.h3Text}>Plataformas Disponibles</Text>
+            <View style={styles.inputContainer}>
+                <Text style={styles.infoText}>¡Ingresa tu propia plataforma!</Text>
+                <View style={styles.inputWrapper}>
+                    <TextInput
+                        style={styles.input}
+                        placeholder="Agregar plataforma de series"
+                        placeholderTextColor="#b0bec5"
+                        value={newPlatform}
+                        onChangeText={setNewPlatform}
+                    />
+                    <TouchableOpacity style={styles.addButton} onPress={handleSubmit}>
+                        <Icon name="add-circle-outline" size={24} color="#ffffff" />
+                    </TouchableOpacity>
+                </View>
             </View>
 
-            {plataforma.map((item) => (
-                <View key={item.id}>
+            <Text style={styles.h3Text}>Plataformas Disponibles</Text>
+
+            {isLoading ? (
+                <ActivityIndicator size="large" color="#3498db" style={styles.loader} />
+            ) : (
+                plataformas.map((item) => (
                     <CardComponent
+                        key={item.id}
                         item={item}
                         onDelete={handleDeletePlatform}
                         editFunction={handleEditNewPlatform}
                     />
-                </View>
-            ))}
-
-            <View style={styles.inputContainer}>
-                <Text style={styles.infoText}>¡Ingresa tu propia plataforma!</Text>
-                <TextInput
-                    style={styles.input}
-                    placeholder="Agregar plataforma de series"
-                    value={newPlatform}
-                    onChangeText={setNewPlatform}
-                />
-                <Pressable style={styles.pressable} onPress={handleSubmit}>
-                    <Text style={styles.pressableText}>Añade Plataforma</Text>
-                </Pressable>
-            </View>
+                ))
+            )}
         </ScrollView>
     );
 };
@@ -102,96 +123,70 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#121212',
-        paddingHorizontal: 20,
     },
-    h3Text: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        textAlign: 'center',
-        marginVertical: 15,
-        color: '#ffffff',
+    contentContainer: {
+        paddingHorizontal: 20,
+        paddingBottom: 40,
     },
     header: {
-        paddingTop: 50,
-        paddingBottom: 20,
+        paddingTop: 60,
+        paddingBottom: 30,
         alignItems: 'center',
     },
-
     title: {
-        fontSize: 36,
+        fontSize: 32,
         fontWeight: 'bold',
         textAlign: 'center',
-        marginBottom: 10,
+        marginBottom: 15,
         color: '#ffffff',
     },
     description: {
         fontSize: 16,
         textAlign: 'center',
         color: '#b0bec5',
+        paddingHorizontal: 20,
+    },
+    h3Text: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        textAlign: 'center',
+        marginVertical: 20,
+        color: '#ffffff',
     },
     inputContainer: {
-        marginVertical: 20,
+        marginVertical: 30,
         width: '100%',
         alignItems: 'center',
     },
     infoText: {
-        fontSize: 20,
-        marginBottom: 10,
+        fontSize: 18,
+        marginBottom: 15,
         color: '#ffffff',
+    },
+    inputWrapper: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        width: '100%',
     },
     input: {
+        flex: 1,
         borderWidth: 1,
         borderColor: '#3498db',
-        padding: 10,
-        width: '80%',
-        marginBottom: 10,
+        padding: 12,
         borderRadius: 10,
         backgroundColor: '#1e1e1e',
         color: '#ffffff',
+        fontSize: 16,
     },
-    pressable: {
+    addButton: {
         backgroundColor: '#3498db',
-        padding: 10,
+        padding: 12,
         borderRadius: 10,
-        alignItems: 'center',
-        width: '80%',
-        elevation: 5,
-    },
-    pressableText: {
-        color: 'white',
-        fontWeight: 'bold',
-        textAlign: 'center',
-    },
-    deleteButton: {
         marginLeft: 10,
-        backgroundColor: '#e74c3c',
-        padding: 1,
-        borderRadius: 5,
     },
-    deleteButtonText: {
-        color: 'white',
-        fontWeight: 'bold',
-    },
-    listItem: {
-        padding: 15,
-        borderBottomWidth: 1,
-        borderColor: '#ccc',
-        backgroundColor: '#1e1e1e',
-        borderRadius: 10,
-        marginVertical: 5,
-        shadowColor: '#000',
-        shadowOffset: {
-            width: 0,
-            height: 2,
-        },
-        shadowOpacity: 0.2,
-        shadowRadius: 3,
-        elevation: 2,
-    },
-    listItemText: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: '#ffffff',
+    loader: {
+        marginTop: 20,
     },
 });
+
 export default Plataforma;
