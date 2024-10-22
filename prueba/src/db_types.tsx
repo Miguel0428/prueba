@@ -7,38 +7,61 @@ export type Json =
   | Json[]
 
 export type Database = {
-  public: {
-    Tables: {
-      Plataforma: {
-        Row: {
-          id: number
-          Nombre: string
+    public: {
+        Tables: {
+            Plataforma: {
+                Row: {
+                    id: number
+                    Nombre: string
+                }
+                Insert: {
+                    id?: number
+                    Nombre: string
+                }
+                Update: {
+                    id?: number
+                    Nombre?: string
+                }
+                Relationships: []
+            },
+            Series: {
+                Row: {
+                    id: number;
+                    titulo: string;
+                    url_video: string;
+                    id_genero: number;
+                    id_critica: number;
+                };
+                Insert: {
+                    titulo: string;
+                    url_video: string;
+                    id_genero: number;
+                    id_critica: number;
+                };
+                Update: {
+                    titulo?: string;
+                    url_video?: string;
+                    id_genero?: number;
+                    id_critica?: number;
+                };
+                Relationships: []
+            }
         }
-        Insert: {
-          id?: number
-          Nombre: string
+        Views: {
+            [_ in never]: never
         }
-        Update: {
-          id?: number
-          Nombre?: string
+        Functions: {
+            [_ in never]: never
         }
-        Relationships: []
-      }
+        Enums: {
+            [_ in never]: never
+        }
+        CompositeTypes: {
+            [_ in never]: never
+        }
     }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      [_ in never]: never
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
 }
+
 
 type PublicSchema = Database[Extract<keyof Database, "public">]
 

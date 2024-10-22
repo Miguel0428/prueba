@@ -1,20 +1,26 @@
-import 'react-native-url-polyfill/auto';
-import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
-import Navigation from './src/Navigation';
+import React from 'react';
+import { NavigationContainer } from '@react-navigation/native';
+import { createDrawerNavigator } from '@react-navigation/drawer';
+import HomeScreen from './src/screens/HomeScreen';
+import DetailsScreen from './src/screens/DetailsScreen';
+import {createNativeStackNavigator} from "@react-navigation/native-stack";
+import Login from "./src/screens/Login";
+import RegisterScreen from "./src/screens/RegisterScreen";
+
+const Drawer = createDrawerNavigator();
 
 export default function App() {
-  return (
-    <Navigation/>
-  );
+    return (
+        <NavigationContainer>
+            <Drawer.Navigator initialRouteName="HomeScreen">
+                <Drawer.Screen name="Home" component={HomeScreen} />
+                <Drawer.Screen name="Details" component={DetailsScreen} />
+                <Drawer.Screen name="Login" component={Login}/>
+                <Drawer.Screen name="Registro" component={RegisterScreen}/>
+            </Drawer.Navigator>
+        </NavigationContainer>
+    );
 }
 
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyNombre: 'center',
-  },
-});
+

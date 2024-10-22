@@ -1,17 +1,24 @@
-import {Animated, FlatList, Pressable, ScrollView, StyleSheet, Text, TextInput, View} from "react-native";
-import React, {useEffect, useState} from "react";
-import {supabase} from '../supabase/client'
-import {fetchPosts, getAllPlataformas, deletePlatform} from "../supabase/api";
+import {Pressable, ScrollView, StyleSheet, Text, TextInput, View} from "react-native";
+import React, {useCallback, useEffect, useState} from "react";
+import {deletePlatform, editPlatform, getAllPlataformas, submitPlatform} from "../supabase/plataforma/Api-plataforma";
+import {CardComponent} from '../Components/CardComponent'
+
+interface PlataformaItem {
+    id: number;
+    Nombre: string;
+}
 
 const Plataforma = () => {
-    const [posts, setPosts] = useState([]);
-    const [newPlatform, setNewPlatform] = useState("");
-    const [plataforma, setNewPlataforma] = useState([])
-
+    const [newPlatform, setNewPlatform] = useState<string>("");
+    const [plataforma, setNewPlataforma] = useState<PlataformaItem[]>([]);
 
     const fetchPlataformas = async () => {
-        const plataformasData = await getAllPlataformas();
-        setNewPlataforma(plataformasData);
+        try {
+            const plataformasData = await getAllPlataformas();
+            setNewPlataforma(plataformasData);
+        } catch (error) {
+            console.error("Error al obtener plataformas:", error);
+        }
     };
 
     useEffect(() => {
@@ -19,72 +26,61 @@ const Plataforma = () => {
     }, []);
 
 
-    useEffect(() => {
-        fetchPosts().then((data) => setPosts(data));
+    const handleEditNewPlatform = useCallback(async (id: number, newName: string) => {
+        try {
+            await editPlatform(id, newName);
+            await fetchPlataformas();
+        } catch (error) {
+            console.error("Error al editar la plataforma:", error);
+        }
     }, []);
 
-    const handleDeletePlatform = async (id: number) => {
-        await deletePlatform(id)
-        fetchPlataformas()
+    const handleDeletePlatform = useCallback(async (id: number) => {
+        try {
+            await deletePlatform(id);
+            await fetchPlataformas();
+        } catch (error) {
+            console.error("Error al eliminar la plataforma:", error);
+        }
+    }, []);
 
-
-    }
-
-    const handleSubmit = async () => {
+    const handleSubmit = useCallback(async () => {
         if (newPlatform.trim() === "") {
             console.log("El nombre de la plataforma no puede estar vacío");
             return;
         }
 
-        const { data, error } = await supabase.from("Plataforma").insert({ Nombre: newPlatform }).select();
-
-        fetchPlataformas()
-
-        if (error) {
-            console.log(error);
-        } else {
-            setPosts([data[0], ...posts]);
+        try {
+            await submitPlatform(newPlatform);
+            await fetchPlataformas();
             setNewPlatform("");
+        } catch (error) {
+            console.error("Error al enviar la plataforma:", error);
         }
-    };
-    const fadeAnim = React.useState(new Animated.Value(0))[0];
-
-    useEffect(() => {
-        Animated.timing(fadeAnim, {
-            toValue: 1,
-            duration: 1000,
-            useNativeDriver: true,
-        }).start();
-    }, []);
+    }, [newPlatform]);
 
     return (
-        <ScrollView contentContainerStyle={styles.container}>
+        <ScrollView style={styles.container}>
             <View style={styles.header}>
-                <Animated.View style={[styles.gradientBackground, { opacity: fadeAnim }]}>
-                    <Text style={styles.title}>¡Descubre tu próxima serie!</Text>
-                    <Text style={styles.description}>
-                        Explora un vasto catálogo de plataformas de streaming con miles de series para elegir.
-                    </Text>
-                </Animated.View>
+                <Text style={styles.title}>¡Descubre tu próxima serie!</Text>
+                <Text style={styles.description}>
+                    Explora un vasto catálogo de plataformas de streaming con miles de series para elegir.
+                </Text>
             </View>
 
             <View>
                 <Text style={styles.h3Text}>Plataformas Disponibles</Text>
             </View>
 
-            <FlatList
-                data={plataforma}
-                keyExtractor={(item) => item.id.toString()}
-                renderItem={({ item }) => (
-                    <View style={styles.listItem}>
-                        <Text style={styles.listItemText}>{item.Nombre}</Text>
-                        <Pressable onPress={() => handleDeletePlatform(item.id)} style={styles.deleteButton}>
-                            <Text style={styles.deleteButtonText}>Eliminar</Text>
-                        </Pressable>
-                    </View>
-                )}
-                style={{ height: '100%' }} // Ajusta la altura según tus necesidades
-            />
+            {plataforma.map((item) => (
+                <View key={item.id}>
+                    <CardComponent
+                        item={item}
+                        onDelete={handleDeletePlatform}
+                        editFunction={handleEditNewPlatform}
+                    />
+                </View>
+            ))}
 
             <View style={styles.inputContainer}>
                 <Text style={styles.infoText}>¡Ingresa tu propia plataforma!</Text>
@@ -105,7 +101,7 @@ const Plataforma = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#FFF',
+        backgroundColor: '#121212',
         paddingHorizontal: 20,
     },
     h3Text: {
@@ -113,30 +109,25 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         textAlign: 'center',
         marginVertical: 15,
-        color: '#2c3e50',
+        color: '#ffffff',
     },
     header: {
         paddingTop: 50,
         paddingBottom: 20,
         alignItems: 'center',
     },
-    gradientBackground: {
-        padding: 20,
-        borderRadius: 15,
-        backgroundColor: '#ffffff',
-        shadowColor: '#000',
-    },
+
     title: {
-        fontSize: 28,
+        fontSize: 36,
         fontWeight: 'bold',
         textAlign: 'center',
         marginBottom: 10,
-        color: '#2980b9',
+        color: '#ffffff',
     },
     description: {
         fontSize: 16,
         textAlign: 'center',
-        color: '#34495e',
+        color: '#b0bec5',
     },
     inputContainer: {
         marginVertical: 20,
@@ -146,15 +137,17 @@ const styles = StyleSheet.create({
     infoText: {
         fontSize: 20,
         marginBottom: 10,
-        color: '#2980b9',
+        color: '#ffffff',
     },
     input: {
         borderWidth: 1,
-        borderColor: '#2980b9',
+        borderColor: '#3498db',
         padding: 10,
         width: '80%',
         marginBottom: 10,
         borderRadius: 10,
+        backgroundColor: '#1e1e1e',
+        color: '#ffffff',
     },
     pressable: {
         backgroundColor: '#3498db',
@@ -183,7 +176,7 @@ const styles = StyleSheet.create({
         padding: 15,
         borderBottomWidth: 1,
         borderColor: '#ccc',
-        backgroundColor: '#ffffff',
+        backgroundColor: '#1e1e1e',
         borderRadius: 10,
         marginVertical: 5,
         shadowColor: '#000',
@@ -198,8 +191,7 @@ const styles = StyleSheet.create({
     listItemText: {
         fontSize: 18,
         fontWeight: 'bold',
-        color: '#34495e',
+        color: '#ffffff',
     },
 });
-
 export default Plataforma;
