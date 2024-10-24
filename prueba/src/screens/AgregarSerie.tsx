@@ -1,42 +1,26 @@
-import React, {useState} from 'react';
-import {Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View} from 'react-native';
-import * as DocumentPicker from 'expo-document-picker';
-import * as FileSystem from "expo-file-system"
+import React, { useEffect, useState } from 'react';
+import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
+import { addSeries, getGeneros } from '../supabase/series/ApiSeries';
+import { Picker } from '@react-native-picker/picker';
 
 const SaveLocalVideoScreen = () => {
-    const [videoFile, setVideoFile] = useState(null);
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [genero, setGenero] = useState([]);
+    const [generoSelected, setGeneroSelected] = useState(null);
+    const [success, setSucces] = useState('')
 
-    const handleSelectVideo = async () => {
-        try {
-            const result = await DocumentPicker.getDocumentAsync({ type: 'video/*' });
-            console.log('result', result)
-            if (result && result.assets && result.assets.length > 0) {
-                const selectedFile = result.assets[0];
-                const videoFile = {
-                    uri: selectedFile.uri,
-                    name: selectedFile.name,
-                    type: selectedFile.mimeType || selectedFile.file?.type,
-                };
-                setVideoFile(videoFile);
-            } else {
-                Alert.alert('Error', 'No se seleccionó ningún video.');
-            }
-        } catch (error) {
-            console.error('Error selecting video:', error);
-            Alert.alert('Error', 'No se pudo seleccionar el video. Por favor, intenta de nuevo.');
-        }
-    };
+    useEffect(() => {
+        getGeneros()
+            .then(data => {
+                setGenero(data);
+                if (data.length > 0) setGeneroSelected(data[0].id);
+            });
+    }, []);
 
     const handleSave = async () => {
-        if (!videoFile) {
-            Alert.alert('Error', 'Por favor, selecciona un video primero.');
-            return;
-        }
-
         if (!title.trim()) {
             Alert.alert('Error', 'Por favor, ingresa un título para el video.');
             return;
@@ -44,17 +28,9 @@ const SaveLocalVideoScreen = () => {
 
         setIsLoading(true);
         try {
-            const fileName = `${Date.now()}_${videoFile.name}`;
-            const destPath = `${FileSystem.documentDirectory}${fileName}`;
-
-            await FileSystem.copyAsync({
-                from: videoFile.uri,
-                to: destPath,
-            });
-
-            Alert.alert('Éxito', 'El video se ha guardado localmente.');
-
-            setVideoFile(null);
+            const response = await addSeries(title, description, generoSelected);
+            console.log(response);
+            Alert.alert('Éxito', 'La serie se ha guardado correctamente.');
             setTitle('');
             setDescription('');
         } catch (error) {
@@ -67,37 +43,46 @@ const SaveLocalVideoScreen = () => {
 
     return (
         <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
-            <Text style={styles.title}>Guardar Video Local</Text>
+            <Text style={styles.headerTitle}>Agregar Series</Text>
 
-            <TouchableOpacity style={styles.selectButton} onPress={handleSelectVideo}>
-                <Icon name="cloud-upload-outline" size={24} color="#fff" />
-                <Text style={styles.selectButtonText}>Seleccionar Video</Text>
-            </TouchableOpacity>
+            <View style={styles.inputContainer}>
+                <Text style={styles.label}>Título</Text>
+                <TextInput
+                    style={styles.input}
+                    placeholder="Título del video"
+                    placeholderTextColor="#a0a0a0"
+                    value={title}
+                    onChangeText={setTitle}
+                />
+            </View>
 
-            {videoFile && (
-                <View style={styles.fileInfo}>
-                    <Icon name="videocam-outline" size={20} color="#3498db" />
-                    <Text style={styles.fileName}>{videoFile.name}</Text>
+            <View style={styles.inputContainer}>
+                <Text style={styles.label}>Descripción</Text>
+                <TextInput
+                    style={[styles.input, styles.textArea]}
+                    placeholder="Descripción del video"
+                    placeholderTextColor="#a0a0a0"
+                    value={description}
+                    onChangeText={setDescription}
+                    multiline
+                    numberOfLines={4}
+                />
+            </View>
+
+            <View style={styles.inputContainer}>
+                <Text style={styles.label}>Género</Text>
+                <View style={styles.pickerContainer}>
+                    <Picker
+                        style={styles.picker}
+                        selectedValue={generoSelected}
+                        onValueChange={(itemValue) => setGeneroSelected(itemValue)}
+                    >
+                        {genero.map((item) => (
+                            <Picker.Item key={item.id} label={item.nombre} value={item.id} />
+                        ))}
+                    </Picker>
                 </View>
-            )}
-
-            <TextInput
-                style={styles.input}
-                placeholder="Título del video"
-                placeholderTextColor="#a0a0a0"
-                value={title}
-                onChangeText={setTitle}
-            />
-
-            <TextInput
-                style={[styles.input, styles.textArea]}
-                placeholder="Descripción del video"
-                placeholderTextColor="#a0a0a0"
-                value={description}
-                onChangeText={setDescription}
-                multiline
-                numberOfLines={4}
-            />
+            </View>
 
             <TouchableOpacity
                 style={[styles.saveButton, isLoading && styles.disabledButton]}
@@ -109,7 +94,7 @@ const SaveLocalVideoScreen = () => {
                 ) : (
                     <>
                         <Icon name="save-outline" size={24} color="#fff" />
-                        <Text style={styles.buttonText}>Guardar Información</Text>
+                        <Text style={styles.buttonText}>Subir serie</Text>
                     </>
                 )}
             </TouchableOpacity>
@@ -125,37 +110,20 @@ const styles = StyleSheet.create({
     contentContainer: {
         padding: 20,
     },
-    title: {
-        fontSize: 24,
+    headerTitle: {
+        fontSize: 28,
         fontWeight: 'bold',
         color: '#ffffff',
-        marginBottom: 20,
+        marginBottom: 30,
         textAlign: 'center',
     },
-    selectButton: {
-        backgroundColor: '#3498db',
-        padding: 15,
-        borderRadius: 10,
-        flexDirection: 'row',
-        justifyContent: 'center',
-        alignItems: 'center',
+    inputContainer: {
         marginBottom: 20,
     },
-    selectButtonText: {
+    label: {
         color: '#ffffff',
         fontSize: 16,
-        fontWeight: 'bold',
-        marginLeft: 10,
-    },
-    fileInfo: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 20,
-    },
-    fileName: {
-        color: '#3498db',
-        marginLeft: 10,
-        fontSize: 16,
+        marginBottom: 8,
     },
     input: {
         backgroundColor: '#1e1e1e',
@@ -163,13 +131,23 @@ const styles = StyleSheet.create({
         borderColor: '#3498db',
         borderRadius: 10,
         padding: 15,
-        marginBottom: 15,
         color: '#ffffff',
         fontSize: 16,
     },
     textArea: {
         height: 100,
         textAlignVertical: 'top',
+    },
+    pickerContainer: {
+        backgroundColor: '#1e1e1e',
+        borderWidth: 1,
+        borderColor: '#3498db',
+        borderRadius: 10,
+        overflow: 'hidden',
+    },
+    picker: {
+        color: '#1e1e1e',
+        height: 50,
     },
     saveButton: {
         backgroundColor: '#27ae60',
@@ -178,13 +156,14 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'center',
         alignItems: 'center',
+        marginTop: 20,
     },
     disabledButton: {
         backgroundColor: '#7f8c8d',
     },
     buttonText: {
         color: '#ffffff',
-        fontSize: 16,
+        fontSize: 18,
         fontWeight: 'bold',
         marginLeft: 10,
     },

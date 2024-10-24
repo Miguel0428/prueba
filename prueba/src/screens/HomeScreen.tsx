@@ -1,27 +1,76 @@
-import React from 'react';
+import React, {useEffect, useState} from 'react';
 import {
     View,
     Text,
     StyleSheet,
     FlatList,
-    Image,
     TextInput,
     TouchableOpacity,
     ImageBackground,
-    StatusBar,
+    StatusBar, ScrollView,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
+import {getGeneros, getSeries} from "../supabase/series/ApiSeries";
 
-const DUMMY_DATA = [
-    { id: '1', title: 'Stranger Things', image: 'https://via.placeholder.com/150' },
-    { id: '2', title: 'The Witcher', image: 'https://via.placeholder.com/150' },
-    { id: '3', title: 'Breaking Bad', image: 'https://via.placeholder.com/150' },
-    { id: '4', title: 'The Mandalorian', image: 'https://via.placeholder.com/150' },
-];
 
-const HomeScreen = () => {
+const HomeScreen= () => {
+
+    const [series, setSeries] = useState([])
+    const [generos, setGeneros] = useState([])
+
+
+    useEffect(() => {
+        getSeries().then(data=> {
+            console.log(data)
+            setSeries(data)
+        })
+    }, []);
+
+    useEffect(() => {
+        getGeneros().then(data => {
+            console.log(data)
+            setGeneros(data)
+        })
+    }, [])
+
+    const images = {
+        'Proximamente': require('../assets/Próximamente.png'),
+        'matrix': require('../assets/matrix.png'),
+        'el_proyecto_de_la_bruja_de_blair': require('../assets/el_proyecto_de_la_bruja_de_blair.png')
+
+    };
+
+    const renderListByGenero = (generoId:string) => {
+        const seriesFiltradas = series.filter((serie) => {
+            return serie.id_genero.toString() === generoId.toString()
+        });
+
+
+        return (
+            <FlatList
+                data={seriesFiltradas}
+                keyExtractor={(item) => item.id.toString()}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                renderItem={({ item }) => (
+                    <TouchableOpacity style={styles.seriesItem}>
+                        <ImageBackground
+                            source={images[item.titulo.toLowerCase().replace(/ /g, '_')] || images.Proximamente}
+                            style={styles.seriesImage}
+                            imageStyle={{ borderRadius: 10 }}
+                        >
+                            <View  style={styles.seriesGradient} >
+                                <Text style={styles.seriesTitle}>{item.titulo}</Text>
+                            </View>
+                        </ImageBackground>
+                    </TouchableOpacity>
+                )}
+            />
+        )
+    }
+
     return (
-        <View style={styles.container}>
+        <ScrollView style={styles.container}>
             <StatusBar barStyle="light-content" />
             <View style={styles.header}>
                 <Text style={styles.title}>SeriesApp</Text>
@@ -39,28 +88,19 @@ const HomeScreen = () => {
                 />
             </View>
 
-            <Text style={styles.sectionTitle}>Series Populares</Text>
+            <Text style={styles.sectionTitle}>Peliculas populares</Text>
 
-            <FlatList
-                data={DUMMY_DATA}
-                keyExtractor={(item) => item.id}
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                renderItem={({ item }) => (
-                    <TouchableOpacity style={styles.seriesItem}>
-                        <ImageBackground
-                            source={{ uri: item.image }}
-                            style={styles.seriesImage}
-                            imageStyle={{ borderRadius: 10 }}
-                        >
-                            <View style={styles.seriesGradient}>
-                                <Text style={styles.seriesTitle}>{item.title}</Text>
-                            </View>
-                        </ImageBackground>
-                    </TouchableOpacity>
-                )}
-            />
-        </View>
+            {generos.length > 0 ? (
+                generos.map((genero) => (
+                    <View key={genero.id}>
+                    <Text key={genero.id} style={styles.titleMovie}>{genero.nombre}</Text>
+                        {renderListByGenero(genero.id)}
+                    </View>
+                ))
+            ) : (
+                <Text>Cargando...</Text>
+            )}
+        </ScrollView>
     );
 };
 
@@ -69,6 +109,10 @@ const styles = StyleSheet.create({
         flex: 1,
         padding: 20,
         backgroundColor: '#1a1a2e',
+    },
+    titleMovie:{
+        color: '#FFFFFF',
+        fontSize: 26
     },
     header: {
         flexDirection: 'row',
@@ -107,8 +151,8 @@ const styles = StyleSheet.create({
         marginRight: 15,
     },
     seriesImage: {
-        width: 150,
-        height: 225,
+        width: 250,
+        height: 170,
         justifyContent: 'flex-end',
     },
     seriesGradient: {

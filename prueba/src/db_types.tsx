@@ -34,8 +34,9 @@ export type Database = {
                 };
                 Insert: {
                     titulo: string;
-                    url_video: string;
+                    url_video?: string;
                     description: string;
+                    id_genero: number
                 };
                 Update: {
                     titulo?: string;
@@ -61,6 +62,19 @@ export type Database = {
                     nombre?: string,
                     correo?: string,
                     password?: string
+                },
+                Relationship: []
+            },
+            genero:{
+                Row:{
+                    id:number,
+                    nombre:string
+                };
+                Insert:{
+                    nombre:string
+                };
+                Update:{
+                    nombre?:string
                 },
                 Relationship: []
             }
