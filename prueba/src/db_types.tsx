@@ -46,7 +46,7 @@ export type Database = {
                 };
                 Relationships: []
             },
-            usuario: {
+            users: {
                 Row : {
                     id: number,
                     nombre: string,

@@ -10,14 +10,15 @@ import {
     Platform,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
+import {signIn} from "../supabase/usuario/ApiUsuario";
 
 const LoginScreen = ({ navigation }) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
 
-    const handleLogin = () => {
-        // Aquí iría la lógica de autenticación
-        console.log('Login con:', email, password);
+    const handleLogin = async  () => {
+        const response = await signIn(email,password)
+        console.log(response)
     };
 
     return (

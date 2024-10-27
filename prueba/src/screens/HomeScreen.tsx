@@ -11,63 +11,44 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {getGeneros, getSeries} from "../supabase/series/ApiSeries";
+import {RenderList} from "../Components/RenderList";
 
 
 const HomeScreen= () => {
 
     const [series, setSeries] = useState([])
     const [generos, setGeneros] = useState([])
+    const [fileteredSerie, setFilteredSerie] = useState("")
+    const [displayedSeries, setDisplayedSeries] = useState([]);
 
 
     useEffect(() => {
         getSeries().then(data=> {
-            console.log(data)
             setSeries(data)
+            setDisplayedSeries(data)
         })
     }, []);
 
     useEffect(() => {
         getGeneros().then(data => {
-            console.log(data)
             setGeneros(data)
         })
     }, [])
 
-    const images = {
-        'Proximamente': require('../assets/Próximamente.png'),
-        'matrix': require('../assets/matrix.png'),
-        'el_proyecto_de_la_bruja_de_blair': require('../assets/el_proyecto_de_la_bruja_de_blair.png')
+    const handleFilteredData = (text) => {
+        setFilteredSerie(text);
 
+        if (text === "") {
+            setDisplayedSeries(series);
+        } else {
+            const filteredSeries = series.filter(serie =>
+                serie.titulo.toLowerCase().includes(text.toLowerCase())
+            );
+            setDisplayedSeries(filteredSeries);
+        }
+
+        console.log('Filtradas', displayedSeries);
     };
-
-    const renderListByGenero = (generoId:string) => {
-        const seriesFiltradas = series.filter((serie) => {
-            return serie.id_genero.toString() === generoId.toString()
-        });
-
-
-        return (
-            <FlatList
-                data={seriesFiltradas}
-                keyExtractor={(item) => item.id.toString()}
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                renderItem={({ item }) => (
-                    <TouchableOpacity style={styles.seriesItem}>
-                        <ImageBackground
-                            source={images[item.titulo.toLowerCase().replace(/ /g, '_')] || images.Proximamente}
-                            style={styles.seriesImage}
-                            imageStyle={{ borderRadius: 10 }}
-                        >
-                            <View  style={styles.seriesGradient} >
-                                <Text style={styles.seriesTitle}>{item.titulo}</Text>
-                            </View>
-                        </ImageBackground>
-                    </TouchableOpacity>
-                )}
-            />
-        )
-    }
 
     return (
         <ScrollView style={styles.container}>
@@ -85,6 +66,8 @@ const HomeScreen= () => {
                     style={styles.searchInput}
                     placeholder="Buscar series..."
                     placeholderTextColor="#a0a0a0"
+                    value={fileteredSerie}
+                    onChangeText={handleFilteredData}
                 />
             </View>
 
@@ -94,7 +77,7 @@ const HomeScreen= () => {
                 generos.map((genero) => (
                     <View key={genero.id}>
                     <Text key={genero.id} style={styles.titleMovie}>{genero.nombre}</Text>
-                        {renderListByGenero(genero.id)}
+                        <RenderList series={displayedSeries} generoId={genero.id} />
                     </View>
                 ))
             ) : (

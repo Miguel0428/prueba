@@ -1,4 +1,9 @@
 {
   "compilerOptions": {},
-  "extends": "expo/tsconfig.base"
+  "extends": "expo/tsconfig.base",
+  "target": "es6",
+  "module": "commonjs",
+  "strict": true,
+  "esModuleInterop": true,
+  "skipLibCheck": true
 }
