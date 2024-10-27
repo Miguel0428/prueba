@@ -12,6 +12,7 @@ import {
 import Icon from 'react-native-vector-icons/Ionicons';
 import {getGeneros, getSeries} from "../supabase/series/ApiSeries";
 import {RenderList} from "../Components/RenderList";
+import Spinner from 'react-native-loading-spinner-overlay';
 
 
 const HomeScreen= () => {
@@ -20,20 +21,21 @@ const HomeScreen= () => {
     const [generos, setGeneros] = useState([])
     const [fileteredSerie, setFilteredSerie] = useState("")
     const [displayedSeries, setDisplayedSeries] = useState([]);
-
+    const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        getSeries().then(data=> {
-            setSeries(data)
-            setDisplayedSeries(data)
-        })
+        Promise.all([getSeries(), getGeneros()])
+            .then(([seriesData, generosData]) => {
+                setSeries(seriesData);
+                setDisplayedSeries(seriesData);
+                setGeneros(generosData);
+                setIsLoading(false);
+            })
+            .catch(error => {
+                console.error("Error fetching data:", error);
+                setIsLoading(false);
+            });
     }, []);
-
-    useEffect(() => {
-        getGeneros().then(data => {
-            setGeneros(data)
-        })
-    }, [])
 
     const handleFilteredData = (text) => {
         setFilteredSerie(text);
@@ -53,6 +55,11 @@ const HomeScreen= () => {
     return (
         <ScrollView style={styles.container}>
             <StatusBar barStyle="light-content" />
+            <Spinner
+                visible={isLoading}
+                textContent={'Cargando...'}
+                textStyle={styles.spinnerTextStyle}
+            />
             <View style={styles.header}>
                 <Text style={styles.title}>SeriesApp</Text>
                 <TouchableOpacity>
@@ -73,16 +80,14 @@ const HomeScreen= () => {
 
             <Text style={styles.sectionTitle}>Peliculas populares</Text>
 
-            {generos.length > 0 ? (
+            {!isLoading && generos.length > 0 ? (
                 generos.map((genero) => (
                     <View key={genero.id}>
-                    <Text key={genero.id} style={styles.titleMovie}>{genero.nombre}</Text>
+                        <Text style={styles.titleMovie}>{genero.nombre}</Text>
                         <RenderList series={displayedSeries} generoId={genero.id} />
                     </View>
                 ))
-            ) : (
-                <Text>Cargando...</Text>
-            )}
+            ) : null}
         </ScrollView>
     );
 };
@@ -150,6 +155,9 @@ const styles = StyleSheet.create({
         color: '#fff',
         fontSize: 16,
         fontWeight: 'bold',
+    },
+    spinnerTextStyle: {
+        color: '#FFF'
     },
 });
 

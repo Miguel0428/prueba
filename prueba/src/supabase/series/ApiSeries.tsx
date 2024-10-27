@@ -1,5 +1,4 @@
-import { supabase } from '../client';
-import {Alert} from "react-native";
+import {supabase} from '../client';
 
 interface Serie {
     id?: number;

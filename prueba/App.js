@@ -1,9 +1,8 @@
 import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
-import { createDrawerNavigator } from '@react-navigation/drawer';
+import {NavigationContainer} from '@react-navigation/native';
+import {createDrawerNavigator} from '@react-navigation/drawer';
 import HomeScreen from './src/screens/HomeScreen';
 import DetailsScreen from './src/screens/DetailsScreen';
-import {createNativeStackNavigator} from "@react-navigation/native-stack";
 import Login from "./src/screens/Login";
 import RegisterScreen from "./src/screens/RegisterScreen";
 import AgregarSerie from "./src/screens/AgregarSerie";
