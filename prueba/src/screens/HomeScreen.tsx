@@ -1,33 +1,24 @@
 import React, {useEffect, useState} from 'react';
-import {
-    View,
-    Text,
-    StyleSheet,
-    FlatList,
-    TextInput,
-    TouchableOpacity,
-    ImageBackground,
-    StatusBar, ScrollView,
-} from 'react-native';
+import {ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View,} from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {getGeneros, getSeries} from "../supabase/series/ApiSeries";
 import {RenderList} from "../Components/RenderList";
 import Spinner from 'react-native-loading-spinner-overlay';
 
 
-const HomeScreen= () => {
+const HomeScreen = () => {
 
     const [series, setSeries] = useState([])
     const [generos, setGeneros] = useState([])
     const [fileteredSerie, setFilteredSerie] = useState("")
-    const [displayedSeries, setDisplayedSeries] = useState([]);
+    const [seriesMostradas, setSeriesMostradas] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
         Promise.all([getSeries(), getGeneros()])
             .then(([seriesData, generosData]) => {
                 setSeries(seriesData);
-                setDisplayedSeries(seriesData);
+                setSeriesMostradas(seriesData);
                 setGeneros(generosData);
                 setIsLoading(false);
             })
@@ -41,20 +32,19 @@ const HomeScreen= () => {
         setFilteredSerie(text);
 
         if (text === "") {
-            setDisplayedSeries(series);
+            setSeriesMostradas(series);
         } else {
             const filteredSeries = series.filter(serie =>
                 serie.titulo.toLowerCase().includes(text.toLowerCase())
             );
-            setDisplayedSeries(filteredSeries);
+            setSeriesMostradas(filteredSeries);
         }
-
-        console.log('Filtradas', displayedSeries);
+        console.log('Filtradas', seriesMostradas);
     };
 
     return (
         <ScrollView style={styles.container}>
-            <StatusBar barStyle="light-content" />
+            <StatusBar barStyle="light-content"/>
             <Spinner
                 visible={isLoading}
                 textContent={'Cargando...'}
@@ -63,12 +53,12 @@ const HomeScreen= () => {
             <View style={styles.header}>
                 <Text style={styles.title}>SeriesApp</Text>
                 <TouchableOpacity>
-                    <Icon name="person-circle-outline" size={30} color="#fff" />
+                    <Icon name="person-circle-outline" size={30} color="#fff"/>
                 </TouchableOpacity>
             </View>
 
             <View style={styles.searchContainer}>
-                <Icon name="search" size={20} color="#fff" style={styles.searchIcon} />
+                <Icon name="search" size={20} color="#fff" style={styles.searchIcon}/>
                 <TextInput
                     style={styles.searchInput}
                     placeholder="Buscar series..."
@@ -84,7 +74,7 @@ const HomeScreen= () => {
                 generos.map((genero) => (
                     <View key={genero.id}>
                         <Text style={styles.titleMovie}>{genero.nombre}</Text>
-                        <RenderList series={displayedSeries} generoId={genero.id} />
+                        <RenderList series={seriesMostradas} generoId={genero.id}/>
                     </View>
                 ))
             ) : null}
@@ -98,7 +88,7 @@ const styles = StyleSheet.create({
         padding: 20,
         backgroundColor: '#1a1a2e',
     },
-    titleMovie:{
+    titleMovie: {
         color: '#FFFFFF',
         fontSize: 26
     },

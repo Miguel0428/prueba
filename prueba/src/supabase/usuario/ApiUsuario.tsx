@@ -29,7 +29,7 @@ export const signIn = async (email:string, password:string) => {
     const { data, error } = await supabase
         .from('Usuarios')
         .select('id, nombre, correo, role')
-        .eq('email', email)
+        .eq('correo', email)
         .eq('password', password)
         .single();
 

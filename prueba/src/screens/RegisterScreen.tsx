@@ -10,7 +10,7 @@ import {
     Platform,
 } from 'react-native';
 
-import {addUsuario} from "../supabase/usuario/ApiUsuario";
+import {addUsuario, signIn} from "../supabase/usuario/ApiUsuario";
 import Icon from 'react-native-vector-icons/Ionicons';
 
 const RegisterScreen = ({ navigation }) => {
@@ -19,16 +19,16 @@ const RegisterScreen = ({ navigation }) => {
     const [password, setPassword] = useState('');
 
     const handleRegister = async () => {
-    try {
-        const response = await addUsuario(name, email, password);
+        try {
+            const response = await addUsuario(name, email, password, "user");
+            if (response) {
+              const responseLogin =  await signIn(email, password)
+                console.log('logeado',responseLogin)
+            }
 
-        if (response){
-            console.log(response)
+        } catch (error) {
+            console.log(error.message)
         }
-
-    }catch (error){
-        console.log(error.message)
-    }
     };
 
     return (
