@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, Animated } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { addSeries, getGeneros } from '../supabase/series/ApiSeries';
 import { Picker } from '@react-native-picker/picker';
@@ -10,7 +10,8 @@ const SaveLocalVideoScreen = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [genero, setGenero] = useState([]);
     const [generoSelected, setGeneroSelected] = useState(null);
-    const [success, setSucces] = useState('')
+    const [success, setSuccess] = useState(false);
+    const [fadeAnim] = useState(new Animated.Value(0));
 
     useEffect(() => {
         getGeneros()
@@ -19,6 +20,26 @@ const SaveLocalVideoScreen = () => {
                 if (data.length > 0) setGeneroSelected(data[0].id);
             });
     }, []);
+
+    useEffect(() => {
+        if (success) {
+            Animated.timing(fadeAnim, {
+                toValue: 1,
+                duration: 500,
+                useNativeDriver: true,
+            }).start();
+
+            const timer = setTimeout(() => {
+                Animated.timing(fadeAnim, {
+                    toValue: 0,
+                    duration: 500,
+                    useNativeDriver: true,
+                }).start(() => setSuccess(false));
+            }, 3000);
+
+            return () => clearTimeout(timer);
+        }
+    }, [success, fadeAnim]);
 
     const handleSave = async () => {
         if (!title.trim()) {
@@ -30,7 +51,7 @@ const SaveLocalVideoScreen = () => {
         try {
             const response = await addSeries(title, description, generoSelected);
             console.log(response);
-            Alert.alert('Éxito', 'La serie se ha guardado correctamente.');
+            setSuccess(true);
             setTitle('');
             setDescription('');
         } catch (error) {
@@ -44,6 +65,11 @@ const SaveLocalVideoScreen = () => {
     return (
         <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
             <Text style={styles.headerTitle}>Agregar Series</Text>
+
+            <Animated.View style={[styles.successMessage, { opacity: fadeAnim }]}>
+                <Icon name="checkmark-circle" size={24} color="#fff" />
+                <Text style={styles.successText}>Serie guardada correctamente</Text>
+            </Animated.View>
 
             <View style={styles.inputContainer}>
                 <Text style={styles.label}>Título</Text>
@@ -111,19 +137,37 @@ const styles = StyleSheet.create({
         padding: 20,
     },
     headerTitle: {
-        fontSize: 28,
+        fontSize: 32,
         fontWeight: 'bold',
         color: '#ffffff',
         marginBottom: 30,
         textAlign: 'center',
+        textShadowColor: 'rgba(0, 0, 0, 0.75)',
+        textShadowOffset: { width: -1, height: 1 },
+        textShadowRadius: 10
+    },
+    successMessage: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#27ae60',
+        padding: 15,
+        borderRadius: 10,
+        marginBottom: 20,
+    },
+    successText: {
+        color: '#ffffff',
+        fontSize: 16,
+        fontWeight: 'bold',
+        marginLeft: 10,
     },
     inputContainer: {
         marginBottom: 20,
     },
     label: {
         color: '#ffffff',
-        fontSize: 16,
+        fontSize: 18,
         marginBottom: 8,
+        fontWeight: '600',
     },
     input: {
         backgroundColor: '#1e1e1e',
@@ -135,7 +179,7 @@ const styles = StyleSheet.create({
         fontSize: 16,
     },
     textArea: {
-        height: 100,
+        height: 120,
         textAlignVertical: 'top',
     },
     pickerContainer: {
@@ -146,17 +190,18 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
     },
     picker: {
-        color: '#1e1e1e',
+        color: '#ffffff',
         height: 50,
     },
     saveButton: {
-        backgroundColor: '#27ae60',
+        backgroundColor: '#3498db',
         padding: 15,
         borderRadius: 10,
         flexDirection: 'row',
         justifyContent: 'center',
         alignItems: 'center',
         marginTop: 20,
+        elevation: 3,
     },
     disabledButton: {
         backgroundColor: '#7f8c8d',

@@ -1,9 +1,11 @@
 import React, {useEffect, useState} from 'react';
-import {ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View,} from 'react-native';
+import {Modal, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View,} from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {getGeneros, getSeries} from "../supabase/series/ApiSeries";
 import {RenderList} from "../Components/RenderList";
 import Spinner from 'react-native-loading-spinner-overlay';
+import {useAuth} from "../supabase/auth/AuthContext";
+import {useNavigation} from "@react-navigation/native";
 
 
 const HomeScreen = () => {
@@ -13,6 +15,10 @@ const HomeScreen = () => {
     const [fileteredSerie, setFilteredSerie] = useState("")
     const [seriesMostradas, setSeriesMostradas] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [menuVisible, setMenuVisible] = useState(false);
+    const navigation = useNavigation();
+
+    const {user} = useAuth();
 
     useEffect(() => {
         Promise.all([getSeries(), getGeneros()])
@@ -41,6 +47,17 @@ const HomeScreen = () => {
         }
         console.log('Filtradas', seriesMostradas);
     };
+    const toggleMenu = () => {
+        setMenuVisible(!menuVisible);
+    };
+
+    const navigateToLogin = () => {
+        setMenuVisible(false);
+    };
+
+    const navigateToLogout = () => {
+        setMenuVisible(false);
+    };
 
     return (
         <ScrollView style={styles.container}>
@@ -52,9 +69,38 @@ const HomeScreen = () => {
             />
             <View style={styles.header}>
                 <Text style={styles.title}>SeriesApp</Text>
-                <TouchableOpacity>
-                    <Icon name="person-circle-outline" size={30} color="#fff"/>
+                <TouchableOpacity onPress={toggleMenu}>
+                    <Text>{user ? `Bienvenido ${user.nombre}` : ''}</Text>
+                    <Icon name="person-circle-outline" size={30} color="#fff" />
                 </TouchableOpacity>
+
+                <Modal
+                    animationType="fade"
+                    transparent={true}
+                    visible={menuVisible}
+                    onRequestClose={toggleMenu}
+                >
+                    <TouchableOpacity
+                        style={styles.modalOverlay}
+                        activeOpacity={1}
+                        onPress={toggleMenu}
+                    >
+                        <View style={styles.menuContainer}>
+                            {user ? (
+                                <>
+                                    <Text style={styles.menuText}>Bienvenido, {user.nombre}</Text>
+                                    <TouchableOpacity style={styles.menuItem} onPress={navigateToLogout}>
+                                        <Text style={styles.menuItemText}>Cerrar sesión</Text>
+                                    </TouchableOpacity>
+                                </>
+                            ) : (
+                                <TouchableOpacity style={styles.menuItem} onPress={navigateToLogin}>
+                                    <Text style={styles.menuItemText}>Iniciar sesión</Text>
+                                </TouchableOpacity>
+                            )}
+                        </View>
+                    </TouchableOpacity>
+                </Modal>
             </View>
 
             <View style={styles.searchContainer}>
@@ -78,6 +124,8 @@ const HomeScreen = () => {
                     </View>
                 ))
             ) : null}
+
+
         </ScrollView>
     );
 };
@@ -148,6 +196,32 @@ const styles = StyleSheet.create({
     },
     spinnerTextStyle: {
         color: '#FFF'
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        justifyContent: 'flex-start',
+        alignItems: 'flex-end',
+    },
+    menuContainer: {
+        backgroundColor: '#fff',
+        padding: 10,
+        borderRadius: 5,
+        marginTop: 50,
+        marginRight: 10,
+        minWidth: 150,
+    },
+    menuText: {
+        fontSize: 16,
+        marginBottom: 10,
+    },
+    menuItem: {
+        padding: 10,
+        borderTopWidth: 1,
+        borderTopColor: '#ccc',
+    },
+    menuItemText: {
+        fontSize: 16,
     },
 });
 

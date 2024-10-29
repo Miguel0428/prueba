@@ -1,12 +1,29 @@
-import {FlatList, Text, ImageBackground, TouchableOpacity, View, StyleSheet} from "react-native";
+import {FlatList, ImageBackground, StyleSheet, Text, TouchableOpacity, View} from "react-native";
+import WatchSerieScreen from "./WatchSerieScreen";
+import {useState} from "react";
+
+const images = {
+    'Proximamente': require('../assets/Próximamente.png'),
+    'matrix': require('../assets/matrix.png'),
+    'el_proyecto_de_la_bruja_de_blair': require('../assets/el_proyecto_de_la_bruja_de_blair.png')
+
+};
 
 export const RenderList = ({series, generoId}) => {
-    const images = {
-        'Proximamente': require('../assets/Próximamente.png'),
-        'matrix': require('../assets/matrix.png'),
-        'el_proyecto_de_la_bruja_de_blair': require('../assets/el_proyecto_de_la_bruja_de_blair.png')
+    const [selectedSerieId, setSelectedSerieId] = useState(null);
 
+    const handleShowFullScreen = (serieId) => {
+        setSelectedSerieId(serieId);
     };
+
+    const handleCloseFullScreen = () => {
+        setSelectedSerieId(null);
+    };
+
+    if (selectedSerieId) {
+        return <WatchSerieScreen data={selectedSerieId} onClose={handleCloseFullScreen} />;
+    }
+
 
     const seriesFiltradas = series.filter((serie) => serie.id_genero.toString() === generoId.toString());
 
@@ -17,7 +34,7 @@ export const RenderList = ({series, generoId}) => {
             horizontal
             showsHorizontalScrollIndicator={false}
             renderItem={({ item }) => (
-                <TouchableOpacity style={styles.seriesItem}>
+                <TouchableOpacity style={styles.seriesItem} onPress={() => handleShowFullScreen(item)}>
                     <ImageBackground
                         source={item.imageSource || images.Proximamente}
                         style={styles.seriesImage}

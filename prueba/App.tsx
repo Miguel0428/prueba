@@ -1,19 +1,19 @@
 import React from 'react';
+import 'react-native-gesture-handler';
 import { NavigationContainer } from '@react-navigation/native';
 import { createDrawerNavigator } from '@react-navigation/drawer';
 import HomeScreen from './src/screens/HomeScreen';
-import DetailsScreen from './src/screens/DetailsScreen';
 import Login from "./src/screens/Login";
 import RegisterScreen from "./src/screens/RegisterScreen";
 import AgregarSerie from "./src/screens/AgregarSerie";
 import Plataforma from "./src/screens/Plataforma";
-import {AuthProvider, useAuth} from "./src/supabase/auth/AuthContext";
-
-const Drawer = createDrawerNavigator();
+import WatchSerieScreen from "./src/Components/WatchSerieScreen";
+import { AuthProvider, useAuth } from "./src/supabase/auth/AuthContext";
 
 function AppNavigator() {
     const { user } = useAuth();
-    console.log(user)
+
+    const Drawer = createDrawerNavigator();
 
     return (
         <Drawer.Navigator initialRouteName="Home">
@@ -22,8 +22,7 @@ function AppNavigator() {
             {!user && <Drawer.Screen name="Registro" component={RegisterScreen} />}
             {user && user.role === 'admin' && <Drawer.Screen name="serie" component={AgregarSerie} />}
             {user && user.role === 'admin' && <Drawer.Screen name="plataforma" component={Plataforma} />}
-            {user && user.role === 'admin' && <Drawer.Screen name="Admin" component={DetailsScreen} />}
-
+            <Drawer.Screen name="WatchSerie" component={WatchSerieScreen} />
         </Drawer.Navigator>
     );
 }
@@ -37,6 +36,3 @@ export default function App() {
         </AuthProvider>
     );
 }
-
-
-
