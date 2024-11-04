@@ -50,7 +50,7 @@ export const RenderList = ({series, generoId}: any, navigation: { navigate: (arg
             renderItem={({ item }) => (
                 <TouchableOpacity style={styles.seriesItem} onPress={() => handleShowFullScreen(item)}>
                     <ImageBackground
-                        source={item.imageSource || images.Proximamente}
+                        source={images[item.titulo.toLowerCase().replace(/\s+/g, '_')] || images.Proximamente}
                         style={styles.seriesImage}
                         imageStyle={{ borderRadius: 10 }}
                     >

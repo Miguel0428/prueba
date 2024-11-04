@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, {useEffect, useState} from 'react';
 import {
     Modal,
     ScrollView,
@@ -33,7 +33,8 @@ interface SerieData {
     id: number;
     id_genero: number;
     titulo: string;
-    genero: Genero
+    genero: Genero,
+    critica: string
     description: string;
     created_at: string;
     id_critica: number | null;
@@ -66,6 +67,20 @@ const WatchSerieScreen = ({ data, onClose }: { data: SerieData; onClose: () => v
     const { user } = useAuth();
 
 
+    console.log(data)
+
+    useEffect(() => {
+        if (data.critica && data.critica.resena) {
+            setComments([
+                ...comments,
+                {
+                    nombre: data.critica.resena.nombre,
+                    comentario: data.critica.resena.comentario,
+                },
+            ]);
+        }
+    }, [data]);
+
     const addSerie = async () => {
         const response = await addSerieToUser(user.id, data.id);
         if (!response) throw new Error("Error al agregar la serie al usuario");
@@ -73,11 +88,10 @@ const WatchSerieScreen = ({ data, onClose }: { data: SerieData; onClose: () => v
 
     const addCommentToList = () => {
         if (comment.trim() !== '') {
-            setComments([...comments, { text: comment, user: user.nombre }]);
+            setComments([...comments, { nombre: user.nombre, comentario: comment }]);
             setComment('');
         }
     };
-
 
     const addResena = async () => {
         const resena: Resena = {
@@ -91,7 +105,6 @@ const WatchSerieScreen = ({ data, onClose }: { data: SerieData; onClose: () => v
             await addCriticaInSerie(responseResena.id, data.id)
         }
     };
-
 
     const handleUploadData = async () => {
         try {
@@ -117,7 +130,7 @@ const WatchSerieScreen = ({ data, onClose }: { data: SerieData; onClose: () => v
             >
                 <ScrollView style={styles.scrollView}>
                     <ImageBackground
-                        source={images.Proximamente}
+                        source={images[data.titulo.toLowerCase().replace(/\s+/g, '_')] || images.Proximamente}
                         style={styles.seriesImage}
                     >
                         <View style={styles.overlay} />
@@ -131,10 +144,12 @@ const WatchSerieScreen = ({ data, onClose }: { data: SerieData; onClose: () => v
                         <Text style={styles.seriesDescription}>{data.description}</Text>
 
                         <View style={styles.infoContainer}>
-                            <Text style={styles.infoText}>Género: {data.genero.nombre}</Text>
+                            <Text style={styles.infoText}>Género: {data.genero?.nombre}</Text>
                             <View style={styles.ratingContainer}>
-                                <Text style={styles.infoText}>Puntuación: </Text>
-                                <StarRating rating={data.rating} />
+                                <Text style={styles.infoText}>
+                                    Puntuación: {data.critica?.puntuacion ?? "Aun no tiene puntuacion"}
+
+                                </Text>
                             </View>
                         </View>
 
@@ -142,8 +157,8 @@ const WatchSerieScreen = ({ data, onClose }: { data: SerieData; onClose: () => v
                             <Text style={styles.commentsSectionTitle}>Comentarios</Text>
                             {comments.map((comment, index) => (
                                 <View key={index} style={styles.commentItem}>
-                                    <Text style={styles.commentUser}>{comment.user}</Text>
-                                    <Text style={styles.commentText}>{comment.text}</Text>
+                                    <Text style={styles.commentUser}>{comment.nombre}</Text>
+                                    <Text style={styles.commentText}>{comment.comentario}</Text>
                                 </View>
                             ))}
                         </View>

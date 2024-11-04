@@ -29,12 +29,11 @@ export const getSeries = async (): Promise<Serie[]> => {
     try {
         const { data, error } = await supabase
             .from('Series')
-            .select('*,genero:genero(nombre)');
+            .select('*,genero:genero(nombre),critica:critica(resena,puntuacion)');
 
         if (error) {
-            throw new Error(error.message);
+            console.log(error.message)
         }
-
 
         return data || [];
     } catch (error) {
@@ -78,7 +77,6 @@ export const getGeneros = async (): Promise<Genero[]> => {
         throw new Error(error.message())
     }
 }
-
 
 export const addCritica = async (resena: Resena, puntuacion: number): Promise<Critica[]> => {
     try {
