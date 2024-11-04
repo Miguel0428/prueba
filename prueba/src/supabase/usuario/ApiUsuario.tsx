@@ -1,5 +1,4 @@
 import { supabase } from '../client';
-import Constants from "expo-constants";
 
 interface usuario {
     id?: number;
@@ -42,9 +41,6 @@ export const signIn = async (email:string, password:string) => {
     }
 };
 
-
-
-
 export const addUsuario = async (nombre: string, correo: string, password:string, role:string ) => {
     try {
         const { data, error } = await supabase
@@ -53,13 +49,30 @@ export const addUsuario = async (nombre: string, correo: string, password:string
             .select();
 
         if (error) {
-            throw new Error(error.message);
+            return error.message
         }
 
         return data[0] || null;
 
     }catch (error) {
-        console.error('Error fetching series:', error.message);
+        console.error('Error al registrar el usuario:', error.message);
         return [];
     }
+}
+
+export const addSerieToUser = async (idUser: number, idSerie: number) => {
+
+    try {
+        const {error} = await supabase
+            .from('Usuarios')
+            .update({id_serie:idSerie})
+            .eq('id', idUser)
+
+        if (error) console.log(error.message);
+
+        return true
+    }catch (e){
+        console.log(e.message())
+    }
+
 }

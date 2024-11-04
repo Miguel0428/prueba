@@ -1,6 +1,7 @@
-import {FlatList, ImageBackground, StyleSheet, Text, TouchableOpacity, View} from "react-native";
+import {Alert, FlatList, ImageBackground, StyleSheet, Text, TouchableOpacity, View} from "react-native";
 import WatchSerieScreen from "./WatchSerieScreen";
 import {useState} from "react";
+import {useAuth} from "../supabase/auth/AuthContext";
 
 const images = {
     'Proximamente': require('../assets/Próximamente.png'),
@@ -9,10 +10,23 @@ const images = {
 
 };
 
-export const RenderList = ({series, generoId}) => {
+export const RenderList = ({series, generoId}: any, navigation: { navigate: (arg0: string) => void; }) => {
     const [selectedSerieId, setSelectedSerieId] = useState(null);
 
+    const {user} = useAuth()
+
     const handleShowFullScreen = (serieId) => {
+        if (!user) {
+            Alert.alert(
+                "Iniciar sesión",
+                "Debes iniciar sesión para comentar",
+                [
+                    { text: "Cancelar", style: "cancel" },
+                    { text: "Iniciar sesión", onPress: () => navigation.navigate('Iniciar Sesion') }
+                ]
+            );
+            return;
+        }
         setSelectedSerieId(serieId);
     };
 

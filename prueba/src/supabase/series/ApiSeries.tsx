@@ -13,15 +13,28 @@ interface Genero {
     nombre: string
 }
 
+interface Critica {
+    id?: number,
+    resena : Resena,
+    puntuacion : number
+}
+
+interface Resena {
+    nombre: string,
+    comentario: string
+}
+
+
 export const getSeries = async (): Promise<Serie[]> => {
     try {
         const { data, error } = await supabase
             .from('Series')
-            .select('*');
+            .select('*,genero:genero(nombre)');
 
         if (error) {
             throw new Error(error.message);
         }
+
 
         return data || [];
     } catch (error) {
@@ -48,21 +61,6 @@ export const addSeries = async (titulo: string, description: string, id_genero:n
     }
 };
 
-// export const apiUploadFile = async (file: any) => {
-//     const response = await fetch('http://localhost:3000/upload', {
-//         method: 'POST',
-//         body: file
-//     })
-//
-//     const data = await response.json()
-//
-//     if (response.ok){
-//         Alert.alert('Éxito', `El video se ha guardado en la ruta: ${data.filePath}`);
-//     }else{
-//         throw new Error(data.message || 'Error al subir el video.');
-//     }
-// }
-
 export const getGeneros = async (): Promise<Genero[]> => {
     try {
         const {data, error} = await supabase
@@ -78,5 +76,37 @@ export const getGeneros = async (): Promise<Genero[]> => {
 
     }catch (error){
         throw new Error(error.message())
+    }
+}
+
+
+export const addCritica = async (resena: Resena, puntuacion: number): Promise<Critica[]> => {
+    try {
+        const {data, error} = await supabase
+            .from('critica')
+            .insert([{ resena: resena, puntuacion: puntuacion }])
+            .select()
+
+        if (error) console.log(error)
+        console.log('Critica', data)
+        return data[0]
+
+    }catch (e){
+        console.log(e.message())
+    }
+}
+
+export const addCriticaInSerie= async (idCritica: number, idSerie: number) => {
+    try {
+        const {error} = await supabase
+            .from('Series')
+            .update({id_critica : idCritica})
+            .eq('id', idSerie)
+
+        if (error) throw error;
+
+        return true
+    }catch (e){
+        console.log(e.message())
     }
 }

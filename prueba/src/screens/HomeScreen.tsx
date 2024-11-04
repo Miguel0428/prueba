@@ -1,24 +1,29 @@
-import React, {useEffect, useState} from 'react';
-import {Modal, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View,} from 'react-native';
+import React, { useEffect, useState } from 'react';
+import {
+    Modal,
+    ScrollView,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
+} from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
-import {getGeneros, getSeries} from "../supabase/series/ApiSeries";
-import {RenderList} from "../Components/RenderList";
+import { getGeneros, getSeries } from "../supabase/series/ApiSeries";
+import { RenderList } from "../Components/RenderList";
 import Spinner from 'react-native-loading-spinner-overlay';
-import {useAuth} from "../supabase/auth/AuthContext";
-import {useNavigation} from "@react-navigation/native";
+import { useAuth } from "../supabase/auth/AuthContext";
 
-
-const HomeScreen = () => {
-
-    const [series, setSeries] = useState([])
-    const [generos, setGeneros] = useState([])
-    const [fileteredSerie, setFilteredSerie] = useState("")
+const HomeScreen = ({navigation}) => {
+    const [series, setSeries] = useState([]);
+    const [generos, setGeneros] = useState([]);
+    const [filteredSerie, setFilteredSerie] = useState("");
     const [seriesMostradas, setSeriesMostradas] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [menuVisible, setMenuVisible] = useState(false);
-    const navigation = useNavigation();
 
-    const {user} = useAuth();
+    const { user, signOut } = useAuth();
 
     useEffect(() => {
         Promise.all([getSeries(), getGeneros()])
@@ -34,34 +39,37 @@ const HomeScreen = () => {
             });
     }, []);
 
-    const handleFilteredData = (text) => {
+    const handleFilteredData = (text: React.SetStateAction<string>) => {
         setFilteredSerie(text);
 
         if (text === "") {
             setSeriesMostradas(series);
         } else {
             const filteredSeries = series.filter(serie =>
-                serie.titulo.toLowerCase().includes(text.toLowerCase())
+                serie.titulo.toLowerCase().includes(text.toString().toLowerCase())
             );
             setSeriesMostradas(filteredSeries);
         }
-        console.log('Filtradas', seriesMostradas);
     };
+
     const toggleMenu = () => {
         setMenuVisible(!menuVisible);
     };
 
     const navigateToLogin = () => {
         setMenuVisible(false);
+        navigation.navigate('Iniciar Sesion');
     };
 
-    const navigateToLogout = () => {
+    const handleLogout = async () => {
         setMenuVisible(false);
+        await signOut();
+        navigation.navigate('Home');
     };
 
     return (
-        <ScrollView style={styles.container}>
-            <StatusBar barStyle="light-content"/>
+        <View style={styles.container}>
+            <StatusBar barStyle="light-content" />
             <Spinner
                 visible={isLoading}
                 textContent={'Cargando...'}
@@ -69,87 +77,95 @@ const HomeScreen = () => {
             />
             <View style={styles.header}>
                 <Text style={styles.title}>SeriesApp</Text>
-                <TouchableOpacity onPress={toggleMenu}>
-                    <Text>{user ? `Bienvenido ${user.nombre}` : ''}</Text>
-                    <Icon name="person-circle-outline" size={30} color="#fff" />
-                </TouchableOpacity>
-
-                <Modal
-                    animationType="fade"
-                    transparent={true}
-                    visible={menuVisible}
-                    onRequestClose={toggleMenu}
-                >
-                    <TouchableOpacity
-                        style={styles.modalOverlay}
-                        activeOpacity={1}
-                        onPress={toggleMenu}
-                    >
-                        <View style={styles.menuContainer}>
-                            {user ? (
-                                <>
-                                    <Text style={styles.menuText}>Bienvenido, {user.nombre}</Text>
-                                    <TouchableOpacity style={styles.menuItem} onPress={navigateToLogout}>
-                                        <Text style={styles.menuItemText}>Cerrar sesión</Text>
-                                    </TouchableOpacity>
-                                </>
-                            ) : (
-                                <TouchableOpacity style={styles.menuItem} onPress={navigateToLogin}>
-                                    <Text style={styles.menuItemText}>Iniciar sesión</Text>
-                                </TouchableOpacity>
-                            )}
-                        </View>
+                <View style={styles.userContainer}>
+                    {user && <Text style={styles.userName}>{user.nombre}</Text>}
+                    <TouchableOpacity onPress={toggleMenu}>
+                        <Icon name="person-circle-outline" size={30} color="#fff" />
                     </TouchableOpacity>
-                </Modal>
+                </View>
             </View>
 
+            <Modal
+                animationType="fade"
+                transparent={true}
+                visible={menuVisible}
+                onRequestClose={toggleMenu}
+            >
+                <TouchableOpacity
+                    style={styles.modalOverlay}
+                    activeOpacity={1}
+                    onPress={toggleMenu}
+                >
+                    <View style={styles.menuContainer}>
+                        {user ? (
+                            <>
+                                <Text style={styles.menuText}>Bienvenido, {user.nombre}</Text>
+                                <TouchableOpacity style={styles.menuItem} onPress={handleLogout}>
+                                    <Text style={styles.menuItemText}>Cerrar sesión</Text>
+                                </TouchableOpacity>
+                            </>
+                        ) : (
+                            <TouchableOpacity style={styles.menuItem} onPress={navigateToLogin}>
+                                <Text style={styles.menuItemText}>Iniciar sesión</Text>
+                            </TouchableOpacity>
+                        )}
+                    </View>
+                </TouchableOpacity>
+            </Modal>
+
             <View style={styles.searchContainer}>
-                <Icon name="search" size={20} color="#fff" style={styles.searchIcon}/>
+                <Icon name="search" size={20} color="#fff" style={styles.searchIcon} />
                 <TextInput
                     style={styles.searchInput}
                     placeholder="Buscar series..."
                     placeholderTextColor="#a0a0a0"
-                    value={fileteredSerie}
+                    value={filteredSerie}
                     onChangeText={handleFilteredData}
                 />
             </View>
 
-            <Text style={styles.sectionTitle}>Peliculas populares</Text>
+            <ScrollView style={styles.content}>
+                <Text style={styles.sectionTitle}>Películas populares</Text>
 
-            {!isLoading && generos.length > 0 ? (
-                generos.map((genero) => (
-                    <View key={genero.id}>
-                        <Text style={styles.titleMovie}>{genero.nombre}</Text>
-                        <RenderList series={seriesMostradas} generoId={genero.id}/>
-                    </View>
-                ))
-            ) : null}
-
-
-        </ScrollView>
+                {!isLoading && generos.length > 0 ? (
+                    generos.map((genero) => (
+                        <View key={genero.id}>
+                            <Text style={styles.genreTitle}>{genero.nombre}</Text>
+                            <RenderList series={seriesMostradas} generoId={genero.id} />
+                        </View>
+                    ))
+                ) : null}
+            </ScrollView>
+        </View>
     );
 };
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        padding: 20,
-        backgroundColor: '#1a1a2e',
-    },
-    titleMovie: {
-        color: '#FFFFFF',
-        fontSize: 26
+        backgroundColor: '#1e1e1e',
     },
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 20,
+        padding: 20,
+        paddingTop: 50,
+        backgroundColor: '#1e1e1e',
     },
     title: {
-        fontSize: 28,
+        fontSize: 24,
         fontWeight: 'bold',
         color: '#fff',
+    },
+    userContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    userName: {
+        color: '#fff',
+        marginRight: 10,
+        fontSize: 16,
     },
     searchContainer: {
         flexDirection: 'row',
@@ -157,6 +173,7 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(255,255,255,0.1)',
         borderRadius: 20,
         paddingHorizontal: 15,
+        marginHorizontal: 20,
         marginBottom: 20,
     },
     searchIcon: {
@@ -167,32 +184,22 @@ const styles = StyleSheet.create({
         height: 40,
         color: '#fff',
     },
+    content: {
+        flex: 1,
+        padding: 20,
+    },
     sectionTitle: {
         fontSize: 22,
         fontWeight: 'bold',
         color: '#fff',
         marginBottom: 15,
     },
-    seriesItem: {
-        marginRight: 15,
-    },
-    seriesImage: {
-        width: 250,
-        height: 170,
-        justifyContent: 'flex-end',
-    },
-    seriesGradient: {
-        height: '50%',
-        justifyContent: 'flex-end',
-        padding: 10,
-        backgroundColor: 'rgba(0,0,0,0.6)',
-        borderBottomLeftRadius: 10,
-        borderBottomRightRadius: 10,
-    },
-    seriesTitle: {
-        color: '#fff',
-        fontSize: 16,
+    genreTitle: {
+        fontSize: 18,
         fontWeight: 'bold',
+        color: '#fff',
+        marginTop: 20,
+        marginBottom: 10,
     },
     spinnerTextStyle: {
         color: '#FFF'
@@ -204,24 +211,26 @@ const styles = StyleSheet.create({
         alignItems: 'flex-end',
     },
     menuContainer: {
-        backgroundColor: '#fff',
+        backgroundColor: '#2e2e2e',
         padding: 10,
         borderRadius: 5,
-        marginTop: 50,
-        marginRight: 10,
+        marginTop: 80,
+        marginRight: 20,
         minWidth: 150,
     },
     menuText: {
         fontSize: 16,
+        color: '#fff',
         marginBottom: 10,
     },
     menuItem: {
         padding: 10,
         borderTopWidth: 1,
-        borderTopColor: '#ccc',
+        borderTopColor: '#3e3e3e',
     },
     menuItemText: {
         fontSize: 16,
+        color: '#fff',
     },
 });
 

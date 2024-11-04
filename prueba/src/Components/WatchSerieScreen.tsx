@@ -1,16 +1,22 @@
 import React, { useState } from 'react';
 import {
+    Modal,
+    ScrollView,
     View,
     Text,
-    StyleSheet,
-    Modal,
+    TextInput,
     TouchableOpacity,
     ImageBackground,
-    ScrollView,
-    TextInput,
+    StyleSheet,
     KeyboardAvoidingView,
     Platform,
+    Alert,
 } from 'react-native';
+import Icon from 'react-native-vector-icons/Ionicons';
+import { useAuth } from "../supabase/auth/AuthContext";
+import { useNavigation } from "@react-navigation/native";
+import {addSerieToUser} from "../supabase/usuario/ApiUsuario";
+import {addCritica, addCriticaInSerie} from "../supabase/series/ApiSeries";
 
 const images = {
     'Proximamente': require('../assets/Próximamente.png'),
@@ -18,14 +24,84 @@ const images = {
     'el_proyecto_de_la_bruja_de_blair': require('../assets/el_proyecto_de_la_bruja_de_blair.png')
 };
 
-const WatchSerieScreen = ({ data, onClose }) => {
+interface Genero {
+    id: number;
+    nombre: string;
+}
+
+interface SerieData {
+    id: number;
+    id_genero: number;
+    titulo: string;
+    genero: Genero
+    description: string;
+    created_at: string;
+    id_critica: number | null;
+    rating: number;
+}
+
+const StarRating = ({ rating }: { rating: number }) => {
+    const stars = [];
+    for (let i = 1; i <= 5; i++) {
+        stars.push(
+            <Icon
+                key={i}
+                name={i <= rating / 2 ? "star" : "star-outline"}
+                size={20}
+                color="#FFD700"
+            />
+        );
+    }
+    return <View style={styles.starContainer}>{stars}</View>;
+};
+
+interface Resena {
+    nombre: string,
+    comentario: string
+}
+
+const WatchSerieScreen = ({ data, onClose }: { data: SerieData; onClose: () => void }, { navigation }) => {
     const [comment, setComment] = useState('');
     const [comments, setComments] = useState([]);
+    const { user } = useAuth();
 
-    const addComment = () => {
+
+    const addSerie = async () => {
+        const response = await addSerieToUser(user.id, data.id);
+        if (!response) throw new Error("Error al agregar la serie al usuario");
+    };
+
+    const addCommentToList = () => {
         if (comment.trim() !== '') {
-            setComments([...comments, comment]);
+            setComments([...comments, { text: comment, user: user.nombre }]);
             setComment('');
+        }
+    };
+
+
+    const addResena = async () => {
+        const resena: Resena = {
+            nombre: user.nombre,
+            comentario: comment
+        };
+        const puntuacion = 5;
+
+        const responseResena = await addCritica(resena, puntuacion);
+        if (responseResena){
+            await addCriticaInSerie(responseResena.id, data.id)
+        }
+    };
+
+
+    const handleUploadData = async () => {
+        try {
+            await addSerie();
+            addCommentToList();
+            await addResena();
+
+            console.log("Datos cargados exitosamente");
+        } catch (error) {
+            console.error("Error en el proceso de carga de datos:", error.message);
         }
     };
 
@@ -41,12 +117,12 @@ const WatchSerieScreen = ({ data, onClose }) => {
             >
                 <ScrollView style={styles.scrollView}>
                     <ImageBackground
-                        source={images[data.image] || images.Proximamente}
+                        source={images.Proximamente}
                         style={styles.seriesImage}
                     >
                         <View style={styles.overlay} />
                         <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-                            <Text style={styles.closeButtonText}>X</Text>
+                            <Icon name="close" size={24} color="#fff" />
                         </TouchableOpacity>
                     </ImageBackground>
 
@@ -55,15 +131,19 @@ const WatchSerieScreen = ({ data, onClose }) => {
                         <Text style={styles.seriesDescription}>{data.description}</Text>
 
                         <View style={styles.infoContainer}>
-                            <Text style={styles.infoText}>Género: {data.genre}</Text>
-                            <Text style={styles.infoText}>Puntuación: {data.rating}/10</Text>
+                            <Text style={styles.infoText}>Género: {data.genero.nombre}</Text>
+                            <View style={styles.ratingContainer}>
+                                <Text style={styles.infoText}>Puntuación: </Text>
+                                <StarRating rating={data.rating} />
+                            </View>
                         </View>
 
                         <View style={styles.commentsSection}>
                             <Text style={styles.commentsSectionTitle}>Comentarios</Text>
                             {comments.map((comment, index) => (
                                 <View key={index} style={styles.commentItem}>
-                                    <Text style={styles.commentText}>{comment}</Text>
+                                    <Text style={styles.commentUser}>{comment.user}</Text>
+                                    <Text style={styles.commentText}>{comment.text}</Text>
                                 </View>
                             ))}
                         </View>
@@ -78,7 +158,7 @@ const WatchSerieScreen = ({ data, onClose }) => {
                         placeholder="Escribe un comentario..."
                         placeholderTextColor="#999"
                     />
-                    <TouchableOpacity style={styles.commentButton} onPress={addComment}>
+                    <TouchableOpacity style={styles.commentButton} onPress={handleUploadData}>
                         <Text style={styles.commentButtonText}>Enviar</Text>
                     </TouchableOpacity>
                 </View>
@@ -90,14 +170,13 @@ const WatchSerieScreen = ({ data, onClose }) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.9)',
+        backgroundColor: '#1e1e1e',
     },
     scrollView: {
         flex: 1,
     },
     seriesImage: {
-        width: '100%',
-        height: 300,
+        height: 200,
         justifyContent: 'flex-end',
     },
     overlay: {
@@ -108,77 +187,81 @@ const styles = StyleSheet.create({
         position: 'absolute',
         top: 40,
         right: 20,
-        width: 30,
-        height: 30,
-        borderRadius: 15,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    closeButtonText: {
-        color: '#fff',
-        fontSize: 18,
-        fontWeight: 'bold',
+        padding: 10,
     },
     contentContainer: {
         padding: 20,
     },
     seriesTitle: {
-        color: '#fff',
         fontSize: 24,
         fontWeight: 'bold',
+        color: '#fff',
         marginBottom: 10,
     },
     seriesDescription: {
-        color: '#ccc',
         fontSize: 16,
+        color: '#ccc',
         marginBottom: 20,
     },
     infoContainer: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
         marginBottom: 20,
     },
     infoText: {
+        fontSize: 16,
         color: '#fff',
-        fontSize: 14,
+        marginBottom: 5,
+    },
+    ratingContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    starContainer: {
+        flexDirection: 'row',
     },
     commentsSection: {
         marginTop: 20,
     },
     commentsSectionTitle: {
-        color: '#fff',
-        fontSize: 18,
+        fontSize: 20,
         fontWeight: 'bold',
+        color: '#fff',
         marginBottom: 10,
     },
     commentItem: {
-        backgroundColor: 'rgba(255,255,255,0.1)',
+        backgroundColor: '#2e2e2e',
         padding: 10,
         borderRadius: 5,
         marginBottom: 10,
     },
+    commentUser: {
+        fontSize: 14,
+        fontWeight: 'bold',
+        color: '#007AFF',
+        marginBottom: 5,
+    },
     commentText: {
+        fontSize: 14,
         color: '#fff',
     },
     commentInputContainer: {
         flexDirection: 'row',
         padding: 10,
-        backgroundColor: 'rgba(255,255,255,0.1)',
+        backgroundColor: '#2e2e2e',
     },
     commentInput: {
         flex: 1,
-        backgroundColor: 'rgba(255,255,255,0.2)',
-        color: '#fff',
+        height: 40,
+        backgroundColor: '#3e3e3e',
         borderRadius: 20,
         paddingHorizontal: 15,
-        paddingVertical: 10,
+        color: '#fff',
         marginRight: 10,
     },
     commentButton: {
         backgroundColor: '#007AFF',
-        borderRadius: 20,
         paddingHorizontal: 15,
+        paddingVertical: 10,
+        borderRadius: 20,
         justifyContent: 'center',
     },
     commentButtonText: {

@@ -22,7 +22,6 @@ function AppNavigator() {
             {!user && <Drawer.Screen name="Registro" component={RegisterScreen} />}
             {user && user.role === 'admin' && <Drawer.Screen name="serie" component={AgregarSerie} />}
             {user && user.role === 'admin' && <Drawer.Screen name="plataforma" component={Plataforma} />}
-            <Drawer.Screen name="WatchSerie" component={WatchSerieScreen} />
         </Drawer.Navigator>
     );
 }

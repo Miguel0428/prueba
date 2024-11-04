@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, {useEffect, useState} from 'react';
 import {
     View,
     Text,
@@ -13,21 +13,55 @@ import {
 import {addUsuario, signIn} from "../supabase/usuario/ApiUsuario";
 import Icon from 'react-native-vector-icons/Ionicons';
 
+const ErrorMessage = ({ message, onHide }) => {
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            onHide();
+        }, 5000);
+
+        return () => clearTimeout(timer);
+    }, [message, onHide]);
+
+    if (!message) return null;
+
+    return (
+        <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>{message}</Text>
+        </View>
+    );
+};
+
 const RegisterScreen = ({ navigation }) => {
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [messageError, setMessageError] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const handleRegister = async () => {
+        if (isSubmitting) return;
+
+        setIsSubmitting(true);
         try {
             const response = await addUsuario(name, email, password, "user");
-            if (response) {
-              const responseLogin =  await signIn(email, password)
-                console.log('logeado',responseLogin)
+            if (response.toString().includes('duplicate')) {
+                setMessageError('El correo ya existe, por favor pruebe con otro');
+                return;
             }
-
+            if (response.id !== null) {
+                const responseLogin = await signIn(email, password);
+                if (responseLogin.id !== null) {
+                    setName('')
+                    setEmail('')
+                    setPassword('')
+                    navigation.navigate('Home');
+                }
+            }
         } catch (error) {
-            console.log(error.message)
+            console.log(error.message);
+            setMessageError('Ocurrió un error durante el registro');
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -42,6 +76,11 @@ const RegisterScreen = ({ navigation }) => {
             </View>
 
             <View style={styles.form}>
+                <ErrorMessage
+                    message={messageError}
+                    onHide={() => setMessageError('')}
+                />
+
                 <View style={styles.inputContainer}>
                     <Icon name="person-outline" size={20} color="#fff" style={styles.inputIcon} />
                     <TextInput
@@ -78,8 +117,14 @@ const RegisterScreen = ({ navigation }) => {
                     />
                 </View>
 
-                <TouchableOpacity style={styles.button} onPress={handleRegister}>
-                    <Text style={styles.buttonText}>Registrarse</Text>
+                <TouchableOpacity
+                    style={[styles.button, isSubmitting && styles.buttonDisabled]}
+                    onPress={handleRegister}
+                    disabled={isSubmitting}
+                >
+                    <Text style={styles.buttonText}>
+                        {isSubmitting ? 'Registrando...' : 'Registrarse'}
+                    </Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -96,43 +141,45 @@ const RegisterScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#1a1a2e',
+        backgroundColor: '#1e1e1e',
     },
     header: {
-        padding: 20,
         alignItems: 'center',
-    },
-    title: {
-        fontSize: 28,
-        fontWeight: 'bold',
-        color: '#fff',
+        marginTop: 50,
         marginBottom: 30,
     },
+    title: {
+        fontSize: 24,
+        color: '#fff',
+        fontWeight: 'bold',
+    },
     form: {
-        padding: 20,
+        paddingHorizontal: 20,
     },
     inputContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'rgba(255,255,255,0.1)',
-        borderRadius: 10,
         marginBottom: 15,
     },
     inputIcon: {
-        padding: 10,
+        marginRight: 10,
     },
     input: {
         flex: 1,
+        height: 40,
         color: '#fff',
-        paddingVertical: 10,
-        paddingRight: 10,
+        borderBottomWidth: 1,
+        borderBottomColor: '#fff',
     },
     button: {
-        backgroundColor: '#e94560',
+        backgroundColor: '#007AFF',
         padding: 15,
-        borderRadius: 10,
+        borderRadius: 5,
         alignItems: 'center',
-        marginTop: 10,
+        marginTop: 20,
+    },
+    buttonDisabled: {
+        backgroundColor: '#555',
     },
     buttonText: {
         color: '#fff',
@@ -144,8 +191,18 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     loginText: {
-        color: '#fff',
+        color: '#007AFF',
         fontSize: 14,
+    },
+    errorContainer: {
+        backgroundColor: 'rgba(255, 0, 0, 0.8)',
+        padding: 10,
+        borderRadius: 5,
+        marginBottom: 15,
+    },
+    errorText: {
+        color: '#fff',
+        textAlign: 'center',
     },
 });
 

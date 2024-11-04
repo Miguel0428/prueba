@@ -3,7 +3,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import {signIn} from "../usuario/ApiUsuario";
 
 type User = {
-    id: string;
+    id: number;
     nombre: string;
     correo: string;
     role: 'user' | 'admin';

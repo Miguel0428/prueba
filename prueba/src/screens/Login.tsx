@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, {useEffect, useState} from 'react';
 import {
     View,
     Text,
@@ -12,14 +12,48 @@ import {
 import Icon from 'react-native-vector-icons/Ionicons';
 import {useAuth} from "../supabase/auth/AuthContext";
 
+const ErrorMessage = ({ message, onHide }) => {
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            onHide();
+        }, 5000);
+
+        return () => clearTimeout(timer);
+    }, [message, onHide]);
+
+    if (!message) return null;
+
+    return (
+        <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>{message}</Text>
+        </View>
+    );
+};
+
 const LoginScreen = ({ navigation }) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [messageError, setMessageError] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const { customSignIn } = useAuth();
 
-    const handleLogin = async  () => {
-        const user = await customSignIn(email, password);
-        console.log('user', user)
+    const handleLogin = async () => {
+        if (isSubmitting) return;
+
+        setIsSubmitting(true);
+        try {
+            const user = await customSignIn(email, password);
+            if (user) {
+                navigation.navigate('Home');
+            } else {
+                setMessageError('Credenciales inválidas. Por favor, intente de nuevo.');
+            }
+        } catch (error) {
+            console.log(error.message);
+            setMessageError('Ocurrió un error durante el inicio de sesión');
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     return (
@@ -33,6 +67,11 @@ const LoginScreen = ({ navigation }) => {
             </View>
 
             <View style={styles.form}>
+                <ErrorMessage
+                    message={messageError}
+                    onHide={() => setMessageError('')}
+                />
+
                 <View style={styles.inputContainer}>
                     <Icon name="mail-outline" size={20} color="#fff" style={styles.inputIcon} />
                     <TextInput
@@ -58,8 +97,14 @@ const LoginScreen = ({ navigation }) => {
                     />
                 </View>
 
-                <TouchableOpacity style={styles.button} onPress={handleLogin}>
-                    <Text style={styles.buttonText}>Iniciar Sesión</Text>
+                <TouchableOpacity
+                    style={[styles.button, isSubmitting && styles.buttonDisabled]}
+                    onPress={handleLogin}
+                    disabled={isSubmitting}
+                >
+                    <Text style={styles.buttonText}>
+                        {isSubmitting ? 'Iniciando sesión...' : 'Iniciar Sesión'}
+                    </Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -73,46 +118,49 @@ const LoginScreen = ({ navigation }) => {
     );
 };
 
+
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#1a1a2e',
+        backgroundColor: '#1e1e1e',
     },
     header: {
-        padding: 20,
         alignItems: 'center',
-    },
-    title: {
-        fontSize: 28,
-        fontWeight: 'bold',
-        color: '#fff',
+        marginTop: 50,
         marginBottom: 30,
     },
+    title: {
+        fontSize: 24,
+        color: '#fff',
+        fontWeight: 'bold',
+    },
     form: {
-        padding: 20,
+        paddingHorizontal: 20,
     },
     inputContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'rgba(255,255,255,0.1)',
-        borderRadius: 10,
         marginBottom: 15,
     },
     inputIcon: {
-        padding: 10,
+        marginRight: 10,
     },
     input: {
         flex: 1,
+        height: 40,
         color: '#fff',
-        paddingVertical: 10,
-        paddingRight: 10,
+        borderBottomWidth: 1,
+        borderBottomColor: '#fff',
     },
     button: {
-        backgroundColor: '#e94560',
+        backgroundColor: '#007AFF',
         padding: 15,
-        borderRadius: 10,
+        borderRadius: 5,
         alignItems: 'center',
-        marginTop: 10,
+        marginTop: 20,
+    },
+    buttonDisabled: {
+        backgroundColor: '#555',
     },
     buttonText: {
         color: '#fff',
@@ -124,8 +172,18 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     registerText: {
-        color: '#fff',
+        color: '#007AFF',
         fontSize: 14,
+    },
+    errorContainer: {
+        backgroundColor: 'rgba(255, 0, 0, 0.8)',
+        padding: 10,
+        borderRadius: 5,
+        marginBottom: 15,
+    },
+    errorText: {
+        color: '#fff',
+        textAlign: 'center',
     },
 });
 
