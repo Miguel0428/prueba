@@ -1,22 +1,21 @@
-import React, {useEffect, useState} from 'react';
+import React, { useEffect, useState } from 'react';
 import {
+    ImageBackground,
+    KeyboardAvoidingView,
     Modal,
+    Platform,
     ScrollView,
-    View,
+    StyleSheet,
     Text,
     TextInput,
     TouchableOpacity,
-    ImageBackground,
-    StyleSheet,
-    KeyboardAvoidingView,
-    Platform,
-    Alert,
+    View,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useAuth } from "../supabase/auth/AuthContext";
-import { useNavigation } from "@react-navigation/native";
-import {addSerieToUser} from "../supabase/usuario/ApiUsuario";
-import {addCritica, addCriticaInSerie} from "../supabase/series/ApiSeries";
+import { addSerieToUser } from "../supabase/usuario/ApiUsuario";
+import { addCritica, getCommentsBySerieId } from "../supabase/series/ApiSeries";
+import { Picker } from "@react-native-picker/picker";
 
 const images = {
     'Proximamente': require('../assets/Próximamente.png'),
@@ -34,52 +33,40 @@ interface SerieData {
     id_genero: number;
     titulo: string;
     genero: Genero,
-    critica: string
+    critica: string;
     description: string;
     created_at: string;
     id_critica: number | null;
     rating: number;
 }
 
-const StarRating = ({ rating }: { rating: number }) => {
-    const stars = [];
-    for (let i = 1; i <= 5; i++) {
-        stars.push(
-            <Icon
-                key={i}
-                name={i <= rating / 2 ? "star" : "star-outline"}
-                size={20}
-                color="#FFD700"
-            />
-        );
-    }
-    return <View style={styles.starContainer}>{stars}</View>;
-};
-
-interface Resena {
-    nombre: string,
-    comentario: string
-}
-
-const WatchSerieScreen = ({ data, onClose }: { data: SerieData; onClose: () => void }, { navigation }) => {
+const WatchSerieScreen = ({ data, onClose }: { data: SerieData; onClose: () => void }) => {
     const [comment, setComment] = useState('');
-    const [comments, setComments] = useState([]);
+    const [comments, setComments] = useState<{ nombre: string; comentario: string }[]>([]);
+    const [puntuacion, setPuntuacion] = useState(0);
+    const [puntuacionSelected, setPuntuacionSelected] = useState<number>(0);
+
     const { user } = useAuth();
 
-
-    console.log(data)
-
     useEffect(() => {
-        if (data.critica && data.critica.resena) {
-            setComments([
-                ...comments,
-                {
-                    nombre: data.critica.resena.nombre,
-                    comentario: data.critica.resena.comentario,
-                },
-            ]);
-        }
-    }, [data]);
+        const fetchComments = async () => {
+            const comentarios = await getCommentsBySerieId(data.id);
+            const fetchedComments = comentarios.map(comment => ({
+                nombre: comment.resena.nombre,
+                comentario: comment.resena.comentario,
+            }));
+
+            const totalPuntuacion = comentarios.reduce((sum, comentario) => {
+                return sum + parseInt(comentario.puntuacion, 10);
+            }, 0);
+
+            const puntuacionMedia = comentarios.length > 0 ? totalPuntuacion / comentarios.length : 0;
+            setPuntuacion(puntuacionMedia);
+            setComments(fetchedComments);
+        };
+
+        fetchComments();
+    }, [data.id]);
 
     const addSerie = async () => {
         const response = await addSerieToUser(user.id, data.id);
@@ -94,16 +81,8 @@ const WatchSerieScreen = ({ data, onClose }: { data: SerieData; onClose: () => v
     };
 
     const addResena = async () => {
-        const resena: Resena = {
-            nombre: user.nombre,
-            comentario: comment
-        };
-        const puntuacion = 5;
-
-        const responseResena = await addCritica(resena, puntuacion);
-        if (responseResena){
-            await addCriticaInSerie(responseResena.id, data.id)
-        }
+        const resena = { nombre: user.nombre, comentario: comment };
+        await addCritica(resena, puntuacionSelected, data.id);
     };
 
     const handleUploadData = async () => {
@@ -111,33 +90,31 @@ const WatchSerieScreen = ({ data, onClose }: { data: SerieData; onClose: () => v
             await addSerie();
             addCommentToList();
             await addResena();
-
-            console.log("Datos cargados exitosamente");
         } catch (error) {
             console.error("Error en el proceso de carga de datos:", error.message);
         }
     };
 
     return (
-        <Modal
-            transparent={true}
-            animationType="slide"
-            visible={true}
-        >
+        <Modal transparent={true} animationType="slide" visible={true}>
             <KeyboardAvoidingView
                 behavior={Platform.OS === "ios" ? "padding" : "height"}
                 style={styles.container}
             >
                 <ScrollView style={styles.scrollView}>
-                    <ImageBackground
-                        source={images[data.titulo.toLowerCase().replace(/\s+/g, '_')] || images.Proximamente}
-                        style={styles.seriesImage}
-                    >
-                        <View style={styles.overlay} />
+                    <View style={styles.imageContainer}>
+                        <ImageBackground
+                            source={images[data.titulo.toLowerCase().replace(/\s+/g, '_')] || images.Proximamente}
+                            style={styles.seriesImage}
+                            imageStyle={styles.imageStyle}
+                            resizeMode="cover"
+                        >
+                            <View style={styles.overlay} />
+                        </ImageBackground>
                         <TouchableOpacity style={styles.closeButton} onPress={onClose}>
                             <Icon name="close" size={24} color="#fff" />
                         </TouchableOpacity>
-                    </ImageBackground>
+                    </View>
 
                     <View style={styles.contentContainer}>
                         <Text style={styles.seriesTitle}>{data.titulo}</Text>
@@ -145,12 +122,22 @@ const WatchSerieScreen = ({ data, onClose }: { data: SerieData; onClose: () => v
 
                         <View style={styles.infoContainer}>
                             <Text style={styles.infoText}>Género: {data.genero?.nombre}</Text>
-                            <View style={styles.ratingContainer}>
-                                <Text style={styles.infoText}>
-                                    Puntuación: {data.critica?.puntuacion ?? "Aun no tiene puntuacion"}
+                            <Text style={styles.infoText}>
+                                Puntuación: {puntuacion > 0 ? puntuacion : "Aún no hay calificaciones"}
+                            </Text>
+                        </View>
 
-                                </Text>
-                            </View>
+                        <View style={styles.ratingPickerContainer}>
+                            <Text style={styles.label}>Tu puntuación:</Text>
+                            <Picker
+                                style={styles.picker}
+                                selectedValue={puntuacionSelected}
+                                onValueChange={(itemValue) => setPuntuacionSelected(itemValue)}
+                            >
+                                {[1, 2, 3, 4, 5].map((value) => (
+                                    <Picker.Item key={value} label={value.toString()} value={value} />
+                                ))}
+                            </Picker>
                         </View>
 
                         <View style={styles.commentsSection}>
@@ -190,19 +177,46 @@ const styles = StyleSheet.create({
     scrollView: {
         flex: 1,
     },
-    seriesImage: {
+    imageContainer: {
         height: 200,
-        justifyContent: 'flex-end',
+        width: '100%',
+        overflow: 'hidden',
+        position: 'relative',
+    },
+    seriesImage: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    imageStyle: {
+        width: '50%',
+        height: '100%',
     },
     overlay: {
         ...StyleSheet.absoluteFillObject,
         backgroundColor: 'rgba(0,0,0,0.5)',
     },
+    label: {
+        fontSize: 14,
+        fontWeight: 'bold',
+        marginBottom: 4,
+        color: '#fff',
+    },
+    ratingPickerContainer: {
+        marginBottom: 20,
+    },
+    picker: {
+        height: 35,
+        width: 100,
+        color: '#fff',
+        backgroundColor: '#2e2e2e',
+        borderRadius: 8,
+    },
     closeButton: {
         position: 'absolute',
-        top: 40,
-        right: 20,
-        padding: 10,
+        top: 10,
+        right: 10,
+        zIndex: 1,
     },
     contentContainer: {
         padding: 20,
@@ -225,13 +239,6 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: '#fff',
         marginBottom: 5,
-    },
-    ratingContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    starContainer: {
-        flexDirection: 'row',
     },
     commentsSection: {
         marginTop: 20,
@@ -274,10 +281,10 @@ const styles = StyleSheet.create({
     },
     commentButton: {
         backgroundColor: '#007AFF',
-        paddingHorizontal: 15,
-        paddingVertical: 10,
         borderRadius: 20,
+        paddingHorizontal: 15,
         justifyContent: 'center',
+        alignItems: 'center',
     },
     commentButtonText: {
         color: '#fff',

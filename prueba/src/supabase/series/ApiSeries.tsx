@@ -29,7 +29,7 @@ export const getSeries = async (): Promise<Serie[]> => {
     try {
         const { data, error } = await supabase
             .from('Series')
-            .select('*,genero:genero(nombre),critica:critica(resena,puntuacion)');
+            .select('*,genero:genero(nombre)');
 
         if (error) {
             console.log(error.message)
@@ -78,11 +78,11 @@ export const getGeneros = async (): Promise<Genero[]> => {
     }
 }
 
-export const addCritica = async (resena: Resena, puntuacion: number): Promise<Critica[]> => {
+export const addCritica = async (resena: Resena, puntuacion: number, serieId: number): Promise<Critica[]> => {
     try {
         const {data, error} = await supabase
             .from('critica')
-            .insert([{ resena: resena, puntuacion: puntuacion }])
+            .insert([{ resena: resena, puntuacion: puntuacion, serie_id: serieId }])
             .select()
 
         if (error) console.log(error)
@@ -94,16 +94,17 @@ export const addCritica = async (resena: Resena, puntuacion: number): Promise<Cr
     }
 }
 
-export const addCriticaInSerie= async (idCritica: number, idSerie: number) => {
+export const getCommentsBySerieId = async (serieId: number) => {
     try {
-        const {error} = await supabase
-            .from('Series')
-            .update({id_critica : idCritica})
-            .eq('id', idSerie)
+        const {data, error} = await supabase
+            .from('critica')
+            .select('*')
+            .eq('serie_id', serieId)
 
-        if (error) throw error;
+        if (error) console.log(error.message)
+        console.log('resena info', data)
 
-        return true
+        return data
     }catch (e){
         console.log(e.message())
     }
